@@ -36,7 +36,8 @@ class LanguageManager(EventDispatcher):
                 'no_ads': 'No advertisements',
                 'buy_premium': 'Buy Premium',
                 'cancel': 'Cancel',
-                'premium_title': 'Upgrade to Premium'
+                'premium_title': 'Upgrade to Premium',
+                'error_phone_required':'Error Phone Required'
             },
             'Español': {
                 'search_country': 'Buscar país',
@@ -66,43 +67,53 @@ class LanguageManager(EventDispatcher):
                 'no_ads': 'Sin publicidad',
                 'buy_premium': 'Comprar Premium',
                 'cancel': 'Cancelar',
-                'premium_title': 'Actualizar a Premium'
+                'premium_title': 'Actualizar a Premium',
+                'error_phone_required':'Error Telefono Requerido'
             },
             'Français': {
-                'search_country': 'Rechercher un pays',
-                'enter_phone': 'Entrez le numéro de téléphone',
-                'paste_clipboard': 'Coller depuis le presse-papiers',
-                'validate_link': 'Valider et Générer le Lien',
-                'copy_link': 'Copier le Lien dans le Presse-papiers',
-                'generated_link': 'Le lien WhatsApp généré apparaîtra ici',
-                'select_contact': 'Sélectionner dans les Contacts',
-                'share_link': 'Partager le Lien',
-                'go_premium': 'Version Premium',
-                'premium_active': 'Premium Activé',
-                'dark_mode': 'Mode Sombre',
-                'light_mode': 'Mode Clair',
-                'view_history': 'Voir Historique',
-                'close': 'Fermer',
-                'search_contacts': 'Rechercher des contacts...',
-                'custom_message': 'Entrez un message personnalisé (facultatif)',
-                'phone_detected': 'Numéro de téléphone détecté dans le presse-papiers. Voulez-vous l\'utiliser?',
-                'clipboard_title': 'Numéro de Téléphone Détecté',
-                'country_detected': 'Code Pays Détecté',
-                'yes': 'Oui',
-                'no': 'Non'
+                'search_country':'Rechercher un pays',
+                'enter_phone':'Entrez le numéro de téléphone',
+                'paste_clipboard':'Coller depuis le Presse-papiers',
+                'validate_link':'Valider et générer le lien',
+                'copy_link':'Copier le lien dans le presse-papiers',
+                'generated_link':'Le lien WhatsApp généré apparaîtra ici',
+                'select_contact':'Sélectionnez parmi les contacts',
+                'share_link':'Partager le lien',
+                'go_premium':'Passez Premium',
+                'premium_active':'Premium activé',
+                'dark_mode':'Mode sombre',
+                'light_mode':'Mode Lumière',
+                'view_history':'historique',
+                'close':'Fermer',
+                'search_contacts':'Rechercher des contacts...',
+                'custom_message':'Saisissez un message personnalisé (facultatif)',
+                'phone_detected':'Numéro de téléphone détecté dans le presse-papiers. Souhaitez-vous l\'utiliser?',
+                'clipboard_title':'Numéro de téléphone détecté',
+                'country_detected':'Code de pays détecté',
+                'yes':'Oui',
+                'no':'Non',
+                'premium_features':'Fonctionnalités premium',
+                'auto_country':'Détection automatique du pays par GPS',
+                'ip_detection':'Détection de pays par IP',
+                'no_ads':'Pas de publicité',
+                'buy_premium':'Acheter Premium',
+                'cancel':'Annuler',
+                'premium_title':'Passer à Premium',
+                'error_phone_required':'Erreur Téléphone requis',
             }
         }
     
     def get_text(self, key):
         """Get translated text for a given key"""
         return self.translations.get(self.current_language, {}).get(key, key)
-    def get_keys(self):
+    
+    def get_dict_lang(self):
         return self.translations.get(self.last_language, {})
     
     def change_language(self, language):
         """Change the current language"""
-        self.last_language = self.current_language
         if language in list(self.translations.keys()):
+            print("**********Cambiado*********************")
             self.current_language = language
     
     def get_available_languages(self):

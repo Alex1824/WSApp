@@ -1,17 +1,30 @@
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.fitimage import FitImage
 from kivymd.uix.scrollview import MDScrollView
 from kivymd.uix.gridlayout import MDGridLayout
 from kivymd.uix.button import MDButton, MDButtonText
-from kivymd.uix.label import MDIcon
 from kivy.metrics import dp
-from kivymd.uix.dialog import MDDialog
+from kivymd.uix.dialog import (
+    MDDialog,
+    MDDialogIcon,
+    MDDialogHeadlineText,
+    MDDialogSupportingText,
+    MDDialogButtonContainer,
+    MDDialogContentContainer,
+)
 from src.ui.ui_manager import UIManager
 from logging import Logger
-from kivymd.uix.snackbar import MDSnackbar
+from kivymd.uix.snackbar import MDSnackbar,MDSnackbarText
 from kivy.core.clipboard import Clipboard
 from kivymd.uix.list import MDListItem
-from kivymd.uix.label import MDLabel
+from kivymd.uix.label import MDLabel,MDIcon
+from kivymd.uix.card import MDCard
+from kivymd.uix.list import (MDListItem,MDListItemLeadingIcon,MDListItemSupportingText,MDListItemHeadlineText)
+from kivymd.uix.divider import MDDivider
+from kivy.uix.widget import Widget
+import logging
+from kivymd.uix.anchorlayout import MDAnchorLayout
 
 class MainView(MDScreen):
     def __init__(self, managers, **kwargs):
@@ -25,6 +38,10 @@ class MainView(MDScreen):
         self.history_manager = managers['history']
         self.ad_manager = managers['ad']
         self.is_premium = False
+        self.md_bg_color=self.theme_cls.surfaceColor
+        self.theme_cls.theme_style = "Light"
+        self.theme_cls.primary_palette = "Teal"
+        self.theme_cls.backgroundColor
         
         # Bind to clipboard changes
         self.link_manager.bind(is_valid_clipboard=self.on_valid_clipboard)
@@ -33,44 +50,66 @@ class MainView(MDScreen):
         
     def setup_ui(self):
         
-        self.theme_cls.theme_style = "Light"  # o "Dark"
-        self.theme_cls.primary_palette = "Teal"  # Puedes cambiar a "Blue", "Red", etc.
-        self.theme_cls.material_style = "M3"  # Usar Material Design 3
-        
-        # Layout principal
-        main_box = MDBoxLayout(
-            orientation="vertical",
-            spacing=15, 
-            padding=20)
-        
         # Scrollable content
-        scroll_view = MDScrollView()
-        self.layout = MDGridLayout(
-            cols=1,
-            spacing=15,
-            size_hint_y=None,
+        self.main_box = MDScrollView(
+            # md_bg_color= self.theme_cls.primaryColor, 
+            pos_hint={'right':1,'left':1},
+            do_scroll_x=False,
+            )
+
+        # Layout principal
+        self.layout = MDBoxLayout(
+            orientation="vertical",
+            spacing=dp(10),
+            padding=dp(15),
+            #md_bg_color=self.theme_cls.onSurfaceVariantColor,
             adaptive_height=True,
-            padding=20
+            adaptive_width=True,
+            size_hint=(1, None),
+            )
+        
+        self.logo_continer = MDBoxLayout(
+            radius=dp(40),
+            pos_hint={"center_x": .5, "center_y": .5},
+            md_bg_color=self.theme_cls.onSurfaceVariantColor,
+            size_hint=(None, None),
+            adaptive_height=True,
+            spacing=dp(20),
             )
         
         # Logo
-        logo = MDIcon(
+        logo = FitImage(
             source='assets/images/logo.png',
-            #size_hint=(1, None),
-            #height=dp(100),
-            #pos_hint={"center_x": 0.5}
+            size_hint=(.5,None),
+            size=(dp(150),dp(150)),
         )
-        self.layout.add_widget(logo)
         
+        self.lang_btn_box=MDBoxLayout(
+            orientation="vertical",
+            #md_bg_color=self.theme_cls.onSurfaceVariantColor,
+            pos_hint={'left':1},
+            adaptive_height=True,
+            adaptive_width=True,
+            size_hint_y=None,
+            size_hint_x=.8
+        )     
+    
+
         # Language selector (ahora como dropdown)
     
         self.language_button = self.ui_manager.create_button(
             text=self.language_manager.current_language,
             icon="translate",
             style="outlined",
-            callback=self.show_language_menu
+            callback=self.show_language_menu,  
+            size_hint_x=1, 
         )
-        self.layout.add_widget(self.language_button)
+        
+        
+        self.logo_continer.add_widget(logo)
+        self.layout.add_widget(self.logo_continer)
+        self.lang_btn_box.add_widget(self.language_button)
+        self.layout.add_widget(self.lang_btn_box)
         
         # Phone input section
         self.setup_phone_input()
@@ -81,63 +120,74 @@ class MainView(MDScreen):
         # Link display
         self.link_button = self.ui_manager.create_hyperlink_button(
             text=self.language_manager.get_text('generated_link'),
-            on_press=self.on_link_press
+            on_press=self.on_link_press,
+            md_bg_color = self.theme_cls.surfaceColor
         )
         self.layout.add_widget(self.link_button)
         
-        scroll_view.add_widget(self.layout)
-        main_box.add_widget(scroll_view)
-        self.add_widget(main_box)
+        self.main_box.add_widget(self.layout)
+        self.add_widget(self.main_box)
         
     def setup_phone_input(self):
-        from ..core.phone_utils import get_country_code_by_location, get_country_flag
+        from src.core.phone_utils import get_country_code_by_location, get_country_flag
         
         # Country selection
-        country_box = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(50), spacing=10)
+        country_box = MDBoxLayout(
+            orientation="vertical",
+            md_bg_color=self.theme_cls.onSurfaceVariantColor,
+            pos_hint={'left':1},
+            adaptive_height=True,
+            adaptive_width=True,
+            size_hint_y=None,
+            size_hint_x=0.8,
+            )
         
         self.country_filter = self.ui_manager.create_text_input(
             hint_text=self.language_manager.get_text('search_country'),
-            size_hint=(0.8, None),
-            height=dp(50)
+            pos_hint={'left':1},
+            width= "240dp",
+            size_hint_x=1,            
         )
         
-        self.flag_label = MDButton(
-            MDButtonText(
-                text="",
-                theme_text_color="Custom",
-                text_color=(0, 0, 0, 1)
-            ),
-            style="text",
-            size_hint=(0.2, None),
-            height=dp(50),
-            #font_size='24sp'
-        )
+        # self.flag_label = MDButton(
+        #     MDButtonText(
+        #         text="",
+        #     ),
+        #     style="text",
+        #     size_hint=("0.2dp", None),
+        #     #height=dp(50),
+        #     size_hint_x=(1, None),
+        # )
         
+        country_box.add_widget(self.country_filter)
         # Auto-detect country if premium
-        if self.is_premium:
+        if True:#self.is_premium:
             detected_country = get_country_code_by_location()
             if detected_country:
                 self.country_filter.text = detected_country
-                self.flag_label.children[0].text = get_country_flag(detected_country)
+                # self.flag_label.children[0].text = get_country_flag(detected_country)
+            # country_box.add_widget(self.flag_label)
         
-        self.country_filter.bind(
-            text=lambda instance, value: self.update_flag(value)
-        )
-        
-        country_box.add_widget(self.country_filter)
-        country_box.add_widget(self.flag_label)
+        # self.country_filter.bind(
+        #     text=lambda instance, value: self.update_flag(value)
+        # )
         self.layout.add_widget(country_box)
         
         # Phone number input
         self.phone_input = self.ui_manager.create_text_input(
-            hint_text=self.language_manager.get_text('enter_phone')
+            hint_text=self.language_manager.get_text('enter_phone'),
+            icon="phone",
+            #size_hint_x=(dp(100),None),
         )
         self.layout.add_widget(self.phone_input)
         
         # Custom message input
         self.message_input = self.ui_manager.create_text_input(
             hint_text=self.language_manager.get_text('custom_message'),
-            multiline=True
+            multiline=True,
+            icon="email",
+            # size_hint_x=(dp(100),None),
+            max_height= "200dp",
         )
         self.layout.add_widget(self.message_input)
     
@@ -149,26 +199,56 @@ class MainView(MDScreen):
             self.flag_label.children[0].text = ""
             
     def setup_action_buttons(self):
+        
+        button_valid = MDBoxLayout(
+            orientation="vertical",
+            adaptive_height=True
+        )
+        
+        btn_valid=self.ui_manager.create_button(
+            self.language_manager.get_text('validate_link'),
+            self.on_validate, 
+            "filled", 
+            "check",
+             pos_hint={'center_x':.5},
+            )
+        button_valid.add_widget(btn_valid)
+        self.layout.add_widget(button_valid)
+        
+        button_column = MDBoxLayout(
+            orientation="horizontal",
+            adaptive_height=True,
+            size_hint=(None,None),
+            pos_hint={'center_x': 0.5}
+            
+        )
+        
+        
         buttons = [
-            ('validate_link', self.on_validate, "filled", (0.8, 0.2, 0.2, 1), "check"),
-            ('copy_link', self.on_copy, "elevated", (0.2, 0.6, 0.8, 1), "content-copy"),
-            ('select_contact', self.on_select_contact, "tonal", None, "account-box"),
-            ('share_link', self.on_share, "elevated", None, "share-variant"),
-            ('go_premium', self.on_premium, "filled", (0.8, 0.8, 0.2, 1), "crown"),
-            ('dark_mode', self.on_theme_toggle, "outlined", None, "theme-light-dark"),
-            ('view_history', self.on_history, "tonal", None, "history")
+            (None,self.on_copy, "elevated", "content-copy"),
+            (None,self.on_share, "elevated", "share-variant"),
+            (None,self.on_select_contact, "tonal", "account-box"),
+            (None,self.on_history, "tonal", "history"),
+            (None,self.on_premium, "filled", "crown"),
+            (None,self.on_theme_toggle,"filled", "theme-light-dark",)
         ]
         
-        for text_key, callback, style, bg_color, icon in buttons:
+        for text_key, callback, style, icon in buttons:
             btn = self.ui_manager.create_button(
                 text=self.language_manager.get_text(text_key),
                 callback=callback,
                 style=style,
-                bg_color=bg_color,
-                icon=icon
+                icon=icon,
             )
-            self.layout.add_widget(btn)
-            
+        button_column.add_widget(btn)
+        
+        button_container = MDAnchorLayout(
+            anchor_x="center",
+        )
+
+        button_container.add_widget(button_column)
+        self.layout.add_widget(button_container)
+    
     def show_language_menu(self, instance):
         languages = [
             {
@@ -176,16 +256,15 @@ class MainView(MDScreen):
                 "on_release": lambda x=lang: self.on_language_change(x)
             } for lang in self.language_manager.get_available_languages()
         ]
-        print(languages[0]['on_release'])
         self.language_dropdown = self.ui_manager.create_dropdown(
             caller=instance,
-            options=languages,
-            callback=None
+            options=languages 
         )
         self.language_dropdown.open()
     
         
     def on_language_change(self, language):
+        self.language_dropdown.dismiss()
         self.language_manager.change_language(language)
         self.language_button.children[0].text = language  # Actualiza texto del botón
         self.update_texts()
@@ -209,7 +288,7 @@ class MainView(MDScreen):
                 ],
             )
             dialog.open()
-    
+        
     def use_clipboard_number(self):
         self.phone_input.text = self.link_manager.last_clipboard
         if hasattr(self, 'clipboard_dialog'):
@@ -217,13 +296,15 @@ class MainView(MDScreen):
 
     def on_validate(self, instance):
         """Validate and generate WhatsApp link"""
-        if not self.phone_input.text:
-             self.phone_input.error = True
-             self.phone_input.helper_text = self.language_manager.get_text('error_phone_required')
-             # AnimationManager.highlight_input(self.phone_input, success=False) # Adapt/replace
-             return
+
+        if not self.phone_input.text and not self.phone_input.text.isdecimal():
+            self.phone_input.error = True
+            self.phone_input.helper_text = self.language_manager.get_text('error_phone_required')
+            # AnimationManager.highlight_input(self.phone_input, success=False) # Adapt/replace
+            return
 
         # Clear previous error if any
+        
         self.phone_input.error = False
         self.phone_input.helper_text = self.language_manager.get_text('phone_number_hint')
 
@@ -261,7 +342,7 @@ class MainView(MDScreen):
 
 
     def show_country_detected_dialog(self, message, link):
-        """Show dialog when country code is detected/guessed"""
+        """elevated when country code is detected/guessed"""
         dialog = UIManager.create_confirmation_dialog(
             title=self.language_manager.get_text('country_detected'),
             text_content=message,
@@ -284,10 +365,10 @@ class MainView(MDScreen):
         if self.generated_link_text:
             Clipboard.copy(self.generated_link_text)
             # Show feedback using MDSnackbar
-            MDSnackbar(text=self.language_manager.get_text('link_copied')).open()
+            MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('link_copied'))).open()
             # AnimationManager.button_press(instance) # Adapt/replace
         else:
-             MDSnackbar(text=self.language_manager.get_text('error_no_link_to_copy')).open()
+             MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('error_no_link_to_copy'))).open()
 
     def on_select_contact(self, instance):
         """Show contact selection dialog"""
@@ -296,7 +377,7 @@ class MainView(MDScreen):
         try:
             contacts = self.contact_manager.get_contacts() # [{'name': 'John', 'number': '123'}, ...]
             if not contacts:
-                MDSnackbar(text=self.language_manager.get_text('error_no_contacts')).open()
+                MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('error_no_contacts'))).open()
                 return
 
             # Create list items for the dialog
@@ -306,7 +387,7 @@ class MainView(MDScreen):
 
             def contact_selected_callback(contact_number, contact_name):
                  self.phone_input.text = contact_number
-                 MDSnackbar(text=self.language_manager.get_text('contact_selected') + f": {contact_name}").open()
+                 MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('contact_selected') + f": {contact_name}")).open()
                  if dialog:
                      dialog.dismiss()
                  # AnimationManager.highlight_input(self.phone_input) # Adapt/replace
@@ -329,13 +410,13 @@ class MainView(MDScreen):
 
         except Exception as e:
             Logger.error(f"MainViewMD: Error getting or displaying contacts: {e}")
-            MDSnackbar(text=self.language_manager.get_text('error_contact_access')).open()
+            MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('error_contact_access'))).open()
 
 
     def on_share(self, instance):
         """Share the generated link"""
         if not self.generated_link_text:
-            MDSnackbar(text=self.language_manager.get_text('error_no_link_to_share')).open()
+            MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('error_no_link_to_share'))).open()
             return
 
         link_to_share = self.generated_link_text
@@ -359,25 +440,25 @@ class MainView(MDScreen):
                     intent.putExtra(Intent.EXTRA_TEXT, String(link_to_share))
                     chooser = Intent.createChooser(intent, String('Share WhatsApp Link'))
                     # Get activity reference safely from MDApp
-                    current_activity = self.app.AndroidActivity
+                    current_activity = self.AndroidActivity
                     if current_activity:
                         current_activity.startActivity(chooser)
                     else:
                          Logger.error("Could not get Android activity reference.")
                          Clipboard.copy(link_to_share) # Fallback to copy
-                         MDSnackbar(text=self.language_manager.get_text('link_copied_share_failed')).open()
+                         MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('link_copied_share_failed'))).open()
 
                 except Exception as e:
                     Logger.error(f'Error sharing link on Android: {str(e)}')
                     Clipboard.copy(link_to_share) # Fallback to copy
-                    MDSnackbar(text=self.language_manager.get_text('link_copied_share_failed')).open()
+                    MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('link_copied_share_failed'))).open()
             else: # Other platforms (iOS, Desktop) - Copy to clipboard
                 Clipboard.copy(link_to_share)
-                MDSnackbar(text=self.language_manager.get_text('link_copied_share_unavailable')).open()
+                MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('link_copied_share_unavailable'))).open()
         except Exception as e:
              Logger.error(f'Error using Plyer share: {str(e)}')
              Clipboard.copy(link_to_share) # Fallback to copy
-             MDSnackbar(text=self.language_manager.get_text('link_copied_share_failed')).open()
+             MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('link_copied_share_failed'))).open()
 
     def on_premium(self, instance):
         """Show premium purchase dialog or indicate premium status"""
@@ -386,39 +467,82 @@ class MainView(MDScreen):
             dialog = None # Define dialog variable first
 
             # Content for the dialog (Using MDLabel for features)
-            features_box = MDBoxLayout(orientation='vertical', adaptive_height=True, spacing=dp(5))
-            features_box.add_widget(MDLabel(text="✓ " + self.language_manager.get_text('auto_country'), adaptive_height=True, theme_text_color="Secondary"))
-            features_box.add_widget(MDLabel(text="✓ " + self.language_manager.get_text('ip_detection'), adaptive_height=True, theme_text_color="Secondary"))
-            features_box.add_widget(MDLabel(text="✓ " + self.language_manager.get_text('no_ads'), adaptive_height=True, theme_text_color="Secondary"))
 
-
-            buy_btn = MDButton(
-                text=self.language_manager.get_text('buy_premium'),
-                theme_text_color="Custom",
-                text_color=self.app.theme_cls.primary_color, # Use theme color
-                on_press=lambda *args: (self._activate_premium(), dialog.dismiss())
-            )
-            cancel_btn = MDButton(
-                text=self.language_manager.get_text('cancel'),
-                 on_press=lambda *args: dialog.dismiss()
-            )
-
-            dialog = MDDialog(
-                title=self.language_manager.get_text('premium_title'),
-                text=self.language_manager.get_text('premium_features'), # Main description
-                # type="custom", # If adding custom content widget
-                # content_cls=features_box, # Use this if type="custom"
-                buttons=[cancel_btn, buy_btn],
-                size_hint=(0.9, None),
-                height=dp(280) # Adjust height
-            )
-            # If using type="custom", add the features box *after* creating dialog
-            # dialog.content_cls.add_widget(features_box) # Add features list
-
+            dialog =MDDialog(
+                # ----------------------------Icon-----------------------------
+                    MDDialogIcon(
+                        icon="crown",
+                    ),
+                    # -----------------------Headline text-------------------------
+                    MDDialogHeadlineText(
+                        text=self.language_manager.get_text('premium_title'),
+                    ),
+                    # -----------------------Supporting text-----------------------
+                    MDDialogSupportingText(
+                        text=self.language_manager.get_text('premium_features'),
+                    ),
+                    # -----------------------Custom content------------------------
+                    MDDialogContentContainer(
+                    
+                        MDDivider(),
+                        MDListItem(
+                            MDListItemLeadingIcon(
+                                icon="check",
+                            ),
+                            MDListItemSupportingText(
+                                text=self.language_manager.get_text('auto_country'), 
+                                adaptive_height=True, 
+                                theme_text_color="Secondary"
+                            ),
+                            theme_bg_color="Custom",
+                            md_bg_color=self.theme_cls.transparentColor,
+                        ),
+                        MDListItem(
+                            MDListItemLeadingIcon(
+                                icon="check",
+                            ),
+                            MDListItemSupportingText(
+                                text=self.language_manager.get_text('ip_detection'), 
+                                adaptive_height=True, 
+                                theme_text_color="Secondary"
+                            ),
+                            theme_bg_color="Custom",
+                            md_bg_color=self.theme_cls.transparentColor,
+                        ),
+                        MDDivider(),
+                        orientation="vertical",
+                    ),
+                    # ---------------------Button container------------------------
+                    MDDialogButtonContainer(
+                        Widget(),
+                        MDButton(
+                            MDButtonText(
+                                text=self.language_manager.get_text('cancel')
+                                ),
+                            style="elevated",
+                            on_press=lambda *args: dialog.dismiss(),
+                        ),
+                        MDButton(
+                            MDButtonText(
+                                text=self.language_manager.get_text('buy_premium')
+                                                                    ),
+                            style="elevated",
+                            on_release=lambda *args: (self._activate_premium, dialog.dismiss()),
+                        ),
+                        spacing="15dp",
+                        ),
+                    )
             dialog.open()
         else:
             # Already premium - show a MDSnackbar message
-            MDSnackbar(text=self.language_manager.get_text('premium_already_active')).open()
+            MDSnackbar(
+                MDSnackbarText(
+                    text=self.language_manager.get_text('premium_already_active'),
+                    ),
+                y=dp(24),
+                pos_hint={"center_x": 0.5},
+                size_hint_x=0.5,
+                ).open()
 
 
     def _activate_premium(self):
@@ -438,7 +562,7 @@ class MainView(MDScreen):
         except Exception as e:
              Logger.error(f"Failed to hide banner ad: {e}")
 
-        MDSnackbar(text=self.language_manager.get_text('premium_activated_success')).open()
+        MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('premium_activated_success'))).open()
 
 
     def update_premium_ui_elements(self):
@@ -474,14 +598,11 @@ class MainView(MDScreen):
 
     def on_theme_toggle(self, instance):
         """Toggle between light and dark themes"""
-        current_style = self.app.theme_cls.theme_style
-        if current_style == "Light":
-            self.app.theme_cls.theme_style = "Dark"
-        else:
-            self.app.theme_cls.theme_style = "Light"
+        self.theme_cls.theme_style = "Dark" if self.theme_cls.theme_style == "Light" else "Light"
+        self.layout.md_bg_color=self.theme_cls.backgroundColor
         # Update button text immediately (or refactor update_texts to handle this)
-        self.update_texts() # Call update_texts to refresh button labels
-        # AnimationManager.button_press(instance) # Adapt/replace
+        #self.update_texts() # Call update_texts to refresh button labels
+        #AnimationManager.button_press(instance) # Adapt/replace
 
     def on_history(self, instance):
         """Show history dialog"""
@@ -489,7 +610,7 @@ class MainView(MDScreen):
         try:
             history_list = self.history_manager.get_history() # Assume returns list of strings (links)
             if not history_list:
-                 MDSnackbar(text=self.language_manager.get_text('history_empty')).open()
+                 MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('history_empty'))).open()
                  return
 
             items = []
@@ -502,20 +623,20 @@ class MainView(MDScreen):
                 self.generated_link_text = link # Set selected link as current
                 self.link_button.text = f"{link}"
                 self.link_button.theme_text_color = "Primary"
-                MDSnackbar(text=self.language_manager.get_text('history_link_loaded')).open()
+                MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('history_link_loaded'))).open()
                 if dialog:
                     dialog.dismiss()
 
             for link in reversed(history_list): # Show newest first
                  items.append(
                      MDListItem(
-                         text=link,
-                         on_release=lambda x, l=link: history_item_selected(l)
+                         MDListItemHeadlineText(Text=link),
+                         on_release=lambda x, l=link: history_item_selected(l),
                      )
                  )
 
-            dialog = MDDialog(
-                 title=self.language_manager.get_text('history_title'),
+            dialog = MDDialog(MDDialogHeadlineText(
+                 text=self.language_manager.get_text('history_title')),
                  type="simple",
                  items=items,
                  size_hint=(0.9, 0.8) # Adjust size
@@ -523,8 +644,8 @@ class MainView(MDScreen):
             dialog.open()
 
         except Exception as e:
-            Logger.error(f"MainViewMD: Error getting or displaying history: {e}")
-            MDSnackbar(text=self.language_manager.get_text('error_history_access')).open()
+            logging.error("MainViewMD: Error getting or displaying history: ",e)
+            MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('error_history_access'))).open()
 
 
     def on_link_press(self, instance):
@@ -534,8 +655,8 @@ class MainView(MDScreen):
                 from webbrowser import open as open_url
                 open_url(self.generated_link_text)
             except Exception as e:
-                 Logger.error(f"Failed to open link: {e}")
-                 MDSnackbar(text=self.language_manager.get_text('error_opening_link')).open()
+                 logging.error(f"Failed to open link: {e}")
+                 MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('error_opening_link'))).open()
 
 
     def update_texts(self):
@@ -544,23 +665,24 @@ class MainView(MDScreen):
         self.phone_input.hint_text = self.language_manager.get_text('enter_phone')
         self.message_input.hint_text = self.language_manager.get_text('custom_message')
         
-        child=  [
-            (subchild.text,subchild)
+        widget=  [
+            (subchild, subchild.text)
             for child in self.layout.children 
             if isinstance(child, MDButton)
             for subchild in child.children 
             if isinstance(subchild, MDButtonText)
-]
-        dict_data = {}
-        for key, value in child:
-            dict_data[key] = value
-
-        #print(dict_data)
-            #if hasattr(child, 'children') and len(child.children) > 1:
-        # for i in len(child):  
-        #     if isinstance(child[i].children[0], MDButtonText):
-        #         values=child.children[0].append()
-        #         print(values)
-        for key, VA in dict_data.items():
-            print(key, VA)
-        print(self.language_manager.get_keys())
+        ]
+        
+        dict_data = self.language_manager.get_dict_lang()
+        
+        for key, value in widget:
+            if value == dict_data.get(value,value):
+                for k,v in dict_data.items():
+                    if v==value:
+                        key.text=self.language_manager.get_text(k)
+        
+        SL=self.language_manager
+        
+        if SL.last_language != SL.current_language:
+            SL.last_language = SL.current_language
+    

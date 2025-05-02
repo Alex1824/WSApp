@@ -1,6 +1,6 @@
 from kivy.metrics import dp
 from kivy.utils import get_color_from_hex
-from kivymd.uix.textfield import MDTextField
+from kivymd.uix.textfield import MDTextField,MDTextFieldHintText,MDTextFieldHelperText,MDTextFieldTrailingIcon
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.button import (
     MDButton,
@@ -20,9 +20,9 @@ class UIManager:
         callback=None,
         style="elevated",
         icon=None,
-        bg_color=None,
-        size_hint=(1, None),
-        height=dp(50),
+        size_hint=(None, None),
+        # height=dp(50),
+        # width=dp(120),
         **kwargs
     ):
         """
@@ -42,9 +42,6 @@ class UIManager:
             *content,
             style=style,
             on_release=callback,
-            size_hint=size_hint,
-            height=height,
-            md_bg_color=bg_color,
             **kwargs
         )
 
@@ -52,18 +49,12 @@ class UIManager:
     def create_icon_button(
         icon,
         callback=None,
-        theme_icon_color="Primary",
-        size_hint=(None, None),
-        size=(dp(48), dp(48)),
         **kwargs
     ):
         """Crea un botón de ícono circular"""
         return MDIconButton(
             icon=icon,
             on_release=callback,
-            theme_icon_color=theme_icon_color,
-            size_hint=size_hint,
-            size=size,
             **kwargs
         )
 
@@ -73,7 +64,6 @@ class UIManager:
         callback=None,
         type="standard",
         text=None,
-        bg_color=None,
         **kwargs
     ):
         """
@@ -91,27 +81,42 @@ class UIManager:
             return MDExtendedFabButton(
                 *content,
                 on_release=callback,
-                md_bg_color=bg_color,
                 **kwargs
             )
         else:
             return MDFabButton(
                 icon=icon,
                 on_release=callback,
-                md_bg_color=bg_color,
                 size=type,  # "small", "standard", "large"
                 **kwargs
             )
 
     @staticmethod
-    def create_text_input(hint_text="", mode="filled", size_hint=(1, None), height=dp(50), **kwargs):
+    def create_text_input(hint_text=None, mode="filled",icon="", size_hint_x=(1, None), height=dp(50), **kwargs):
         """Crea un campo de texto MD3"""
+        content=[]
+        content.append(
+            MDTextFieldHintText(
+            text= hint_text
+            )
+            )
+        # content.append(
+        #     MDTextFieldHelperText(
+        #     text= hint_text
+        #     )
+        #     )
+        content.append(
+            MDTextFieldTrailingIcon(
+                icon=icon,
+            )
+        )
+        
         return MDTextField(
-            hint_text=hint_text,
+            *content,
             mode=mode,  # "fill", "outlined", "rectangle"
-            size_hint=size_hint,
-            height=height,
-            **kwargs
+            size_hint_x=size_hint_x,
+            #height=height,
+            **kwargs,
         )
 
     @staticmethod
@@ -127,12 +132,11 @@ class UIManager:
             size_hint=(1, None),
             height=dp(50),
             on_release=on_press,
-            #underline=True,
             **kwargs
         )
 
     @staticmethod
-    def create_dropdown(caller, options, callback, position="bottom", width_mult=4):
+    def create_dropdown(caller, options):
         """
         Crea un menú dropdown moderno (reemplazo de spinner)
         
@@ -149,10 +153,10 @@ class UIManager:
             )
             dropdown.open()
         """
+        
         menu_items = [
             {
                 "text": option["text"],
-                #"viewclass": "OneLineListItem",
                 "on_release": option["on_release"],
             } for option in options
         ]
@@ -160,8 +164,6 @@ class UIManager:
         return MDDropdownMenu(
             caller=caller,
             items=menu_items,
-            #position=position,
-            #width_mult=width_mult,
         )
 
     @staticmethod
@@ -170,12 +172,9 @@ class UIManager:
         options = [
             {
                 "text": country,
-                "on_release": lambda x=country: menu_callback(on_select(x)),
+                "on_release": lambda x=country: on_select(x),
             } for country in countries
         ]
-        
-        def menu_callback(self, text_item):
-            self.root.ids.drop_text.text = text_item
         
         return UIManager.create_dropdown(
             caller=caller,
