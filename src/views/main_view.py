@@ -52,7 +52,6 @@ class MainView(MDScreen):
         
         # Scrollable content
         self.main_box = MDScrollView(
-            # md_bg_color= self.theme_cls.primaryColor, 
             pos_hint={'right':1,'left':1},
             do_scroll_x=False,
             )
@@ -62,31 +61,30 @@ class MainView(MDScreen):
             orientation="vertical",
             spacing=dp(10),
             padding=dp(15),
-            #md_bg_color=self.theme_cls.onSurfaceVariantColor,
             adaptive_height=True,
-            adaptive_width=True,
-            size_hint=(1, None),
+            size_hint=(1,1),
             )
         
         self.logo_continer = MDBoxLayout(
-            radius=dp(40),
+            #radius=dp(40),
             pos_hint={"center_x": .5, "center_y": .5},
             md_bg_color=self.theme_cls.onSurfaceVariantColor,
             size_hint=(None, None),
             adaptive_height=True,
-            spacing=dp(20),
+            adaptive_width=True,
             )
         
         # Logo
         logo = FitImage(
             source='assets/images/logo.png',
-            size_hint=(.5,None),
+            size_hint=(None,None),
             size=(dp(150),dp(150)),
+            fit_mode='contain'
         )
         
         self.lang_btn_box=MDBoxLayout(
             orientation="vertical",
-            #md_bg_color=self.theme_cls.onSurfaceVariantColor,
+            md_bg_color=self.theme_cls.onSurfaceVariantColor,
             pos_hint={'left':1},
             adaptive_height=True,
             adaptive_width=True,
@@ -101,10 +99,8 @@ class MainView(MDScreen):
             text=self.language_manager.current_language,
             icon="translate",
             style="outlined",
-            callback=self.show_language_menu,  
-            size_hint_x=1, 
+            callback=self.show_language_menu,
         )
-        
         
         self.logo_continer.add_widget(logo)
         self.layout.add_widget(self.logo_continer)
