@@ -20,9 +20,6 @@ class UIManager:
         callback=None,
         style="elevated",
         icon=None,
-        size_hint=(None, None),
-        # height=dp(50),
-        # width=dp(120),
         **kwargs
     ):
         """

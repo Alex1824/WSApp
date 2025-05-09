@@ -3,7 +3,7 @@ from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.fitimage import FitImage
 from kivymd.uix.scrollview import MDScrollView
 from kivymd.uix.gridlayout import MDGridLayout
-from kivymd.uix.button import MDButton, MDButtonText
+from kivymd.uix.button import MDButton, MDButtonText,MDFabButton
 from kivy.metrics import dp
 from kivymd.uix.dialog import (
     MDDialog,
@@ -25,6 +25,11 @@ from kivymd.uix.divider import MDDivider
 from kivy.uix.widget import Widget
 import logging
 from kivymd.uix.anchorlayout import MDAnchorLayout
+from src.core.phone_utils import (
+    get_country_code_by_location,
+    get_country_flag,
+    get_country_code_by_alpha2)
+from kivy.core.text import LabelBase
 
 class MainView(MDScreen):
     def __init__(self, managers, **kwargs):
@@ -42,6 +47,15 @@ class MainView(MDScreen):
         self.theme_cls.theme_style = "Light"
         self.theme_cls.primary_palette = "Teal"
         self.theme_cls.backgroundColor
+        
+        LabelBase.register(
+            name="BabelStoneFlags",
+            fn_regular="assets/fonts/BabelStoneFlags.ttf",
+        )
+        self.theme_cls.font_styles["BabelStoneFlags"] = {
+            "standrd": {
+                "font-name": "assets/fonts/BabelStoneFlags.ttf",
+            }}
         
         # Bind to clipboard changes
         self.link_manager.bind(is_valid_clipboard=self.on_valid_clipboard)
@@ -68,7 +82,7 @@ class MainView(MDScreen):
         self.logo_continer = MDBoxLayout(
             #radius=dp(40),
             pos_hint={"center_x": .5, "center_y": .5},
-            md_bg_color=self.theme_cls.onSurfaceVariantColor,
+            # md_bg_color=self.theme_cls.onSurfaceVariantColor,
             size_hint=(None, None),
             adaptive_height=True,
             adaptive_width=True,
@@ -76,7 +90,7 @@ class MainView(MDScreen):
         
         # Logo
         logo = FitImage(
-            source='assets/images/logo.png',
+            source="assets/images/WSion.png",
             size_hint=(None,None),
             size=(dp(150),dp(150)),
             fit_mode='contain'
@@ -84,7 +98,7 @@ class MainView(MDScreen):
         
         self.lang_btn_box=MDBoxLayout(
             orientation="vertical",
-            md_bg_color=self.theme_cls.onSurfaceVariantColor,
+            # md_bg_color=self.theme_cls.onSurfaceVariantColor,
             pos_hint={'left':1},
             adaptive_height=True,
             adaptive_width=True,
@@ -125,55 +139,61 @@ class MainView(MDScreen):
         self.add_widget(self.main_box)
         
     def setup_phone_input(self):
-        from src.core.phone_utils import get_country_code_by_location, get_country_flag
-        
+                
         # Country selection
         country_box = MDBoxLayout(
-            orientation="vertical",
-            md_bg_color=self.theme_cls.onSurfaceVariantColor,
+            orientation="horizontal",
             pos_hint={'left':1},
             adaptive_height=True,
-            adaptive_width=True,
             size_hint_y=None,
-            size_hint_x=0.8,
+            size_hint_x=1,
+            spacing=dp(10),
             )
         
         self.country_filter = self.ui_manager.create_text_input(
             hint_text=self.language_manager.get_text('search_country'),
             pos_hint={'left':1},
-            width= "240dp",
-            size_hint_x=1,            
+            # width= "200dp",
+            size_hint_x=0.5,
         )
         
-        # self.flag_label = MDButton(
-        #     MDButtonText(
-        #         text="",
-        #     ),
-        #     style="text",
-        #     size_hint=("0.2dp", None),
-        #     #height=dp(50),
-        #     size_hint_x=(1, None),
-        # )
+        flag_box=MDBoxLayout(
+            orientation="horizontal",
+            adaptive_width=True,
+            size_hint_x=dp(0.13),
+            pos_hint={'right':1},
+        )
         
+        self.flag_label = MDIcon(
+            size_hint=(1, None),
+            pos_hint= {"center_x":.5,"center_y": 0.5},
+        )
+        
+        flag_box.add_widget(self.flag_label)
+        
+        self.is_premium=True
         country_box.add_widget(self.country_filter)
         # Auto-detect country if premium
-        if True:#self.is_premium:
+        if self.is_premium:
             detected_country = get_country_code_by_location()
+            print(detected_country)
             if detected_country:
-                self.country_filter.text = detected_country
-                # self.flag_label.children[0].text = get_country_flag(detected_country)
-            # country_box.add_widget(self.flag_label)
+                self.country_filter.text = get_country_code_by_alpha2(detected_country)
+                self.flag_label.icon= get_country_flag(detected_country)
+                country_box.add_widget(flag_box)
         
-        # self.country_filter.bind(
-        #     text=lambda instance, value: self.update_flag(value)
-        # )
+        self.country_filter.bind(
+            text=lambda instance, value: self.update_flag(value),
+        )
+        
+        print(self.country_filter.text)
         self.layout.add_widget(country_box)
         
         # Phone number input
         self.phone_input = self.ui_manager.create_text_input(
             hint_text=self.language_manager.get_text('enter_phone'),
             icon="phone",
-            #size_hint_x=(dp(100),None),
+            size_hint_x=0.8,
         )
         self.layout.add_widget(self.phone_input)
         
@@ -184,15 +204,12 @@ class MainView(MDScreen):
             icon="email",
             # size_hint_x=(dp(100),None),
             max_height= "200dp",
+            size_hint_x=0.8,
         )
         self.layout.add_widget(self.message_input)
     
     def update_flag(self, country_code):
-        from ..core.phone_utils import get_country_flag
-        if country_code and len(country_code) >= 2:
-            self.flag_label.children[0].text = get_country_flag(country_code[:2])
-        else:
-            self.flag_label.children[0].text = ""
+        self.flag_label.icon = get_country_flag(country_code)
             
     def setup_action_buttons(self):
         
@@ -206,7 +223,7 @@ class MainView(MDScreen):
             self.on_validate, 
             "filled", 
             "check",
-             pos_hint={'center_x':.5},
+            pos_hint={'center_x':.5},
             )
         button_valid.add_widget(btn_valid)
         self.layout.add_widget(button_valid)
@@ -218,7 +235,6 @@ class MainView(MDScreen):
             pos_hint={'center_x': 0.5}
             
         )
-        
         
         buttons = [
             (None,self.on_copy, "elevated", "content-copy"),

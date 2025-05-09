@@ -1,0 +1,21 @@
+MDFabButton.theme_font_name is set to an invalid option {'Icon': {'large': {'line-height': 1, 'font-name': 'Icons', 'font-size': 24.0}}, 'Display': {'large': {'line-height': 1.64, 'font-name': 'Roboto', 'font-size': 57.0}, 'medium': {'line-height': 1.52, 'font-name': 'Roboto', 'font-size': 45.0}, 'small': {'line-height': 1.44, 'font-name': 'Roboto', 'font-size': 36.0}}, 'Headline': {'large': {'line-height': 1.4, 'font-name': 'Roboto', 'font-size': 
+32.0}, 'medium': {'line-height': 1.36, 'font-name': 'Roboto', 'font-size': 28.0}, 'small': {'line-height': 1.32, 'font-name': 'Roboto', 'font-size': 24.0}}, 'Title': {'large': {'line-height': 1.28, 'font-name': 'Roboto', 'font-size': 22.0}, 'medium': {'line-height': 1.24, 'font-name': 'Roboto', 'font-size': 16.0}, 'small': {'line-height': 1.2, 'font-name': 'Roboto', 'font-size': 14.0}}, 'Body': {'large': {'line-height': 1.24, 'font-name': 'Roboto', 'font-size':line-height': 1.16, 'font-name': 'Roboto', 'font-size': 12.0}}, 'Label': {'large': {'line-height': 1.2, 'font-name': 'Roboto', 'font-size': 14.0}, 'medium': {'line-height': 1.16, 'font-name': 'Roboto', 'font-size': 12.0}, 'small': {'line-height': 1.16, 'font-name': 'Roboto', 'font-size': 11.0}}, 'MaterialSymbols': {'standrad': {'font-name': 'MaterialSymbols'}}}. Must be one of: ['Primary', 'Custom']
+PS C:\Users\simon\Documents\Py\WSApp> python main.py
+[INFO   ] [Logger      ] Record log in C:\Users\simon\.kivy\logs\kivy_25-05-03_24.txt
+[INFO   ] [deps        ] Successfully imported "kivy_deps.angle" 0.4.0
+[INFO   ] [deps        ] Successfully imported "kivy_deps.glew" 0.3.1
+[INFO   ] [deps        ] Successfully imported "kivy_deps.sdl2" 0.8.0
+[INFO   ] [Kivy        ] v2.3.1
+[INFO   ] [Kivy        ] Installed at "C:\Users\simon\Documents\Py\WSApp\venv\Lib\site-packages\kivy\__init__.py"
+[INFO   ] [Python      ] v3.13.3 (tags/v3.13.3:6280bb5, Apr  8 2025, 14:47:33) [MSC v.1943 64 bit (AMD64)]
+[INFO   ] [Python      ] Interpreter at "C:\Users\simon\Documents\Py\WSApp\venv\Scripts\python.exe"
+[INFO   ] [Logger      ] Purge log fired. Processing...
+[INFO   ] [Logger      ] Purge finished!
+[INFO   ] [KivyMD      ] 2.0.1.dev0, git-Unknown, 2025-04-25 (installed at "C:\Users\simon\Documents\Py\WSApp\venv\Lib\site-packages\kivymd\__init__.py")
+[INFO   ] [Factory     ] 195 symbols loaded
+[INFO   ] [Image       ] Providers: img_tex, img_dds, img_sdl2, img_pil (img_ffpyplayer ignored)
+[INFO   ] [Text        ] Provider: sdl2
+[INFO   ] [Window      ] Provider: sdl2
+[INFO   ] [GL          ] Using the "OpenGL" graphics system
+[INFO   ] [GL          ] GLEW initialization succeeded
+[INFO   ] [GL          ] Backend used <glew>

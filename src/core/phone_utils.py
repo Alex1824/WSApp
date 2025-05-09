@@ -151,19 +151,21 @@ def get_country_code():
         return ''
 
 @lru_cache(maxsize=100)
-def get_country_flag(country_code):
+def get_country_flag(country_code: str) -> str:
     """
-    Convierte el código de país ISO a emoji de bandera
-    Ejemplo: 'ES' -> '🇪🇸'
+    Convierte el código de país ISO 3166-1 alfa-2 en un emoji de bandera.
+    Ejemplo: 'US' → '🇺🇸'
     """
-    if not country_code or len(country_code) != 2:
+    if not country_code or not isinstance(country_code, str) or len(country_code) != 2:
+        return ""  # bandera blanca por defecto para errores
+
+    try:
+        country_code = country_code.upper()
+        base = ord('🇦') - ord('A')
+        return chr(ord(country_code[0]) + base) + chr(ord(country_code[1]) + base)
+    except Exception as e:
+        print(f"Error generating flag for {country_code}: {e}")
         return ""
-    
-    # Convertir código de país a emoji de bandera
-    # Los emojis de banderas son creados usando los caracteres regionales
-    country_code = country_code.upper()
-    base = ord('🇦') - ord('A')
-    return chr(ord(country_code[0]) + base) + chr(ord(country_code[1]) + base)
 
 def get_country_code_by_location():
     """
