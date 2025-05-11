@@ -2,8 +2,9 @@ from kivymd.uix.screen import MDScreen
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.fitimage import FitImage
 from kivymd.uix.scrollview import MDScrollView
-from kivymd.uix.gridlayout import MDGridLayout
-from kivymd.uix.button import MDButton, MDButtonText,MDFabButton
+from kivymd.uix.button import MDButton, MDButtonText
+from kivymd.uix.textfield import MDTextField 
+from kivymd.uix.textfield.textfield import MDTextFieldHintText
 from kivy.metrics import dp
 from kivymd.uix.dialog import (
     MDDialog,
@@ -176,7 +177,6 @@ class MainView(MDScreen):
         # Auto-detect country if premium
         if self.is_premium:
             detected_country = get_country_code_by_location()
-            print(detected_country)
             if detected_country:
                 self.country_filter.text = get_country_code_by_alpha2(detected_country)
                 self.flag_label.icon= get_country_flag(detected_country)
@@ -186,7 +186,6 @@ class MainView(MDScreen):
             text=lambda instance, value: self.update_flag(value),
         )
         
-        print(self.country_filter.text)
         self.layout.add_widget(country_box)
         
         # Phone number input
@@ -230,9 +229,10 @@ class MainView(MDScreen):
         
         button_column = MDBoxLayout(
             orientation="horizontal",
-            adaptive_height=True,
+            height=dp(50),
             size_hint=(None,None),
-            pos_hint={'center_x': 0.5}
+            #pos_hint={'center_x': 0.5},
+            spacing=dp(10),
             
         )
         
@@ -380,7 +380,7 @@ class MainView(MDScreen):
             MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('link_copied'))).open()
             # AnimationManager.button_press(instance) # Adapt/replace
         else:
-             MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('error_no_link_to_copy'))).open()
+            MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('error_no_link_to_copy'))).open()
 
     def on_select_contact(self, instance):
         """Show contact selection dialog"""
@@ -398,25 +398,25 @@ class MainView(MDScreen):
             dialog = None # Define dialog first
 
             def contact_selected_callback(contact_number, contact_name):
-                 self.phone_input.text = contact_number
-                 MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('contact_selected') + f": {contact_name}")).open()
-                 if dialog:
-                     dialog.dismiss()
-                 # AnimationManager.highlight_input(self.phone_input) # Adapt/replace
+                self.phone_input.text = contact_number
+                MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('contact_selected') + f": {contact_name}")).open()
+                if dialog:
+                    dialog.dismiss()
+                # AnimationManager.highlight_input(self.phone_input) # Adapt/replace
 
             for contact in contacts:
-                 items.append(
-                     MDListItem(
-                         text=f"{contact.get('name', 'Unknown')} ({contact.get('number', 'No number')})",
-                         on_release=lambda x, num=contact.get('number'), name=contact.get('name'): contact_selected_callback(num, name) if num else None
-                     )
-                 )
+                items.append(
+                    MDListItem(
+                        text=f"{contact.get('name', 'Unknown')} ({contact.get('number', 'No number')})",
+                        on_release=lambda x, num=contact.get('number'), name=contact.get('name'): contact_selected_callback(num, name) if num else None
+                    )
+                )
 
             dialog = MDDialog(
-                 title=self.language_manager.get_text('select_contact_title'),
-                 type="simple", # Use "simple" type for list items
-                 items=items,
-                 size_hint=(0.9, 0.8) # Adjust size
+                title=self.language_manager.get_text('select_contact_title'),
+                type="simple", # Use "simple" type for list items
+                items=items,
+                size_hint=(0.9, 0.8) # Adjust size
             )
             dialog.open()
 
@@ -456,9 +456,9 @@ class MainView(MDScreen):
                     if current_activity:
                         current_activity.startActivity(chooser)
                     else:
-                         Logger.error("Could not get Android activity reference.")
-                         Clipboard.copy(link_to_share) # Fallback to copy
-                         MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('link_copied_share_failed'))).open()
+                        Logger.error("Could not get Android activity reference.")
+                        Clipboard.copy(link_to_share) # Fallback to copy
+                        MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('link_copied_share_failed'))).open()
 
                 except Exception as e:
                     Logger.error(f'Error sharing link on Android: {str(e)}')
@@ -468,9 +468,9 @@ class MainView(MDScreen):
                 Clipboard.copy(link_to_share)
                 MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('link_copied_share_unavailable'))).open()
         except Exception as e:
-             Logger.error(f'Error using Plyer share: {str(e)}')
-             Clipboard.copy(link_to_share) # Fallback to copy
-             MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('link_copied_share_failed'))).open()
+            Logger.error(f'Error using Plyer share: {str(e)}')
+            Clipboard.copy(link_to_share) # Fallback to copy
+            MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('link_copied_share_failed'))).open()
 
     def on_premium(self, instance):
         """Show premium purchase dialog or indicate premium status"""
@@ -572,40 +572,40 @@ class MainView(MDScreen):
         try:
             self.ad_manager.hide_banner()
         except Exception as e:
-             Logger.error(f"Failed to hide banner ad: {e}")
+            Logger.error(f"Failed to hide banner ad: {e}")
 
         MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('premium_activated_success'))).open()
 
 
     def update_premium_ui_elements(self):
-         """Update UI elements based on premium status"""
-         # Example: Change premium button text/icon and disable if needed
-         if self.is_premium:
-             if self.premium_button:
-                 self.premium_button.text = self.language_manager.get_text('premium_active')
-                 # Optionally change icon or disable
-                 # self.premium_button.icon = "check-decagram"
-                 # self.premium_button.disabled = True
-             # Enable premium features in UI if they were disabled
-             # e.g., make country detection logic run if it was previously skipped
-             if self.country_filter and not self.country_filter.text:
-                  # Trigger auto-detection again if it wasn't done before
-                  try:
-                     from ..core.phone_utils import get_country_code_by_location, get_country_flag
-                     detected_country = get_country_code_by_location()
-                     if detected_country:
-                          self.country_filter.text = detected_country
-                          self.flag_label.text = get_country_flag(detected_country)
-                  except Exception as e:
-                      Logger.error(f"Error detecting country after premium activation: {e}")
+        """Update UI elements based on premium status"""
+        # Example: Change premium button text/icon and disable if needed
+        if self.is_premium:
+            if self.premium_button:
+                self.premium_button.text = self.language_manager.get_text('premium_active')
+                # Optionally change icon or disable
+                # self.premium_button.icon = "check-decagram"
+                # self.premium_button.disabled = True
+            # Enable premium features in UI if they were disabled
+            # e.g., make country detection logic run if it was previously skipped
+            if self.country_filter and not self.country_filter.text:
+                # Trigger auto-detection again if it wasn't done before
+                try:
+                    from ..core.phone_utils import get_country_code_by_location, get_country_flag
+                    detected_country = get_country_code_by_location()
+                    if detected_country:
+                        self.country_filter.text = detected_country
+                        self.flag_label.text = get_country_flag(detected_country)
+                except Exception as e:
+                    Logger.error(f"Error detecting country after premium activation: {e}")
 
-         else:
-             # Revert UI elements if premium status is lost
-             if self.premium_button:
-                 self.premium_button.text = self.language_manager.get_text('go_premium')
-                 # self.premium_button.icon = "crown"
-                 # self.premium_button.disabled = False
-             # Disable premium features here if necessary
+        else:
+            # Revert UI elements if premium status is lost
+            if self.premium_button:
+                self.premium_button.text = self.language_manager.get_text('go_premium')
+                # self.premium_button.icon = "crown"
+                # self.premium_button.disabled = False
+            # Disable premium features here if necessary
 
 
     def on_theme_toggle(self, instance):
@@ -622,8 +622,8 @@ class MainView(MDScreen):
         try:
             history_list = self.history_manager.get_history() # Assume returns list of strings (links)
             if not history_list:
-                 MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('history_empty'))).open()
-                 return
+                MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('history_empty'))).open()
+                return
 
             items = []
             dialog = None
@@ -640,18 +640,18 @@ class MainView(MDScreen):
                     dialog.dismiss()
 
             for link in reversed(history_list): # Show newest first
-                 items.append(
-                     MDListItem(
-                         MDListItemHeadlineText(Text=link),
-                         on_release=lambda x, l=link: history_item_selected(l),
-                     )
-                 )
+                items.append(
+                    MDListItem(
+                        MDListItemHeadlineText(Text=link),
+                        on_release=lambda x, l=link: history_item_selected(l),
+                    )
+                )
 
             dialog = MDDialog(MDDialogHeadlineText(
-                 text=self.language_manager.get_text('history_title')),
-                 type="simple",
-                 items=items,
-                 size_hint=(0.9, 0.8) # Adjust size
+                text=self.language_manager.get_text('history_title')),
+                type="simple",
+                items=items,
+                size_hint=(0.9, 0.8) # Adjust size
             )
             dialog.open()
 
@@ -667,34 +667,92 @@ class MainView(MDScreen):
                 from webbrowser import open as open_url
                 open_url(self.generated_link_text)
             except Exception as e:
-                 logging.error(f"Failed to open link: {e}")
-                 MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('error_opening_link'))).open()
+                logging.error(f"Failed to open link: {e}")
+                MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('error_opening_link'))).open()
+
+
+    def _update_button_texts(self):
+        """Update texts for MDButtons, including those in nested layouts."""
+        buttons_to_update = []
+        for child in self.layout.walk():  # Use walk() to get all descendants
+            if isinstance(child, MDButton):
+                for subchild in child.children:
+                    if isinstance(subchild, MDButtonText):
+                        buttons_to_update.append((subchild, subchild.text))
+
+        dict_data = self.language_manager.get_dict_lang()
+        for button_text, original_text in buttons_to_update:
+            if original_text in dict_data.values():
+                for key, translated_text in dict_data.items():
+                    if translated_text == original_text:
+                        button_text.text = self.language_manager.get_text(key)
+                        break  # Found the translation, move to the next button
+
+
+    def _update_text_input_hints(self):
+        """Update hint_texts for MDTextFields."""
+        from kivy.clock import Clock
+        hint_text_widgets = [
+            child
+            for child in self.layout.walk()
+            if isinstance(child, MDTextFieldHintText)
+        ]
+        dict_data = self.language_manager.get_dict_lang()
+        text_fields_to_refresh = []  # To store text fields that need refresh
+
+        for hint_widget in hint_text_widgets:
+            if hint_widget.text in dict_data.values():
+                for key, translated_text in dict_data.items():
+                    if translated_text == hint_widget.text:
+                        print(
+                            f"Updating hint_text '{hint_widget.text}'"
+                            f" to '{self.language_manager.get_text(key)}'"
+                        )
+                        hint_widget.text = self.language_manager.get_text(key)
+                        # Find the parent MDTextField to refresh it
+                        text_field = hint_widget.parent
+                        if text_field and text_field not in text_fields_to_refresh:
+                            text_fields_to_refresh.append(text_field)
+                        break
+
+        # Force refresh after updating all hints
+        def refresh_text_fields(*args):
+            for field in text_fields_to_refresh:
+                field.focus = True  # Give focus briefly
+                field.focus = False  # Remove focus
+
+        if text_fields_to_refresh:  # Only schedule if there are fields to refresh
+            Clock.schedule_once(refresh_text_fields, 0)
+
+
+    def _update_labels(self):
+        """Update texts for MDLabels."""
+        labels_to_update = []
+        for child in self.layout.walk():
+            if isinstance(child, MDLabel):
+                labels_to_update.append((child, child.text))
+
+        dict_data = self.language_manager.get_dict_lang()
+        for label, original_text in labels_to_update:
+            if original_text in dict_data.values():
+                for key, translated_text in dict_data.items():
+                    if translated_text == original_text:
+                        #label.text = self.language_manager.get_text(key)
+                        break
 
 
     def update_texts(self):
-        """Update all UI texts based on current language"""
+        """Update all UI texts based on current language."""
+        
+        self._update_button_texts()
+        self._update_text_input_hints()
+        self._update_labels()  # Add this line to update 
+        
+
+        # Update specific texts outside the loops (as you were doing)
         self.country_filter.hint_text = self.language_manager.get_text('search_country')
         self.phone_input.hint_text = self.language_manager.get_text('enter_phone')
         self.message_input.hint_text = self.language_manager.get_text('custom_message')
-        
-        widget=  [
-            (subchild, subchild.text)
-            for child in self.layout.children 
-            if isinstance(child, MDButton)
-            for subchild in child.children 
-            if isinstance(subchild, MDButtonText)
-        ]
-        
-        dict_data = self.language_manager.get_dict_lang()
-        
-        for key, value in widget:
-            if value == dict_data.get(value,value):
-                for k,v in dict_data.items():
-                    if v==value:
-                        key.text=self.language_manager.get_text(k)
-        
-        SL=self.language_manager
-        
-        if SL.last_language != SL.current_language:
-            SL.last_language = SL.current_language
+        self.link_button.text = self.language_manager.get_text('generated_link')
+
     

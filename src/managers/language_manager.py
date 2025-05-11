@@ -113,7 +113,6 @@ class LanguageManager(EventDispatcher):
     def change_language(self, language):
         """Change the current language"""
         if language in list(self.translations.keys()):
-            print("**********Cambiado*********************")
             self.current_language = language
     
     def get_available_languages(self):
