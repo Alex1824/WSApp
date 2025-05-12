@@ -12,6 +12,7 @@ from kivymd.uix.button import (
     MDExtendedFabButtonIcon,
     MDExtendedFabButtonText
 )
+from kivymd.uix.boxlayout import MDBoxLayout
 
 class UIManager:
     @staticmethod
@@ -126,7 +127,8 @@ class UIManager:
                 text_color=get_color_from_hex('#0645AD'),
             ),
             style="text",
-            size_hint=(1, None),
+            size_hint=(None, None),
+            pos_hint={'center_x':.5},
             height=dp(50),
             on_release=on_press,
             **kwargs
@@ -178,3 +180,7 @@ class UIManager:
             options=options,
             callback=on_select
         )
+        
+    @staticmethod
+    def create_box_layout(**kwags):
+        return MDBoxLayout(**kwags)

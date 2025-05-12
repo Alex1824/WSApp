@@ -41,7 +41,7 @@ class WhatsAppLinkApp(MDApp):
         # Configurar tamaño de ventana si no es móvil
         if not self.is_mobile():
             from kivy.core.window import Window
-            Window.size = (400, 700)  # Tamaño ideal para esta aplicación
+            Window.size = (400, 800)  # Tamaño ideal para esta aplicación
         
         return main_view
     

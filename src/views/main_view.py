@@ -1,5 +1,4 @@
 from kivymd.uix.screen import MDScreen
-from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.fitimage import FitImage
 from kivymd.uix.scrollview import MDScrollView
 from kivymd.uix.button import MDButton, MDButtonText
@@ -31,6 +30,9 @@ from src.core.phone_utils import (
     get_country_flag,
     get_country_code_by_alpha2)
 from kivy.core.text import LabelBase
+from kivy.core.window import Window
+from kivymd.uix.card import MDCard
+from kivymd.uix.relativelayout import MDRelativeLayout
 
 class MainView(MDScreen):
     def __init__(self, managers, **kwargs):
@@ -63,27 +65,66 @@ class MainView(MDScreen):
         
         self.setup_ui()
         
+        self.generated_link_text = ""
+        
     def setup_ui(self):
         
-        # Scrollable content
+        screen_width = Window.size[0]
+        screen_height = Window.size[1]
+        max_width = dp(400)
+        max_height = dp(800)
+        
+        # Calculate ScrollView size
+        content_width = min(screen_width, max_width)
+        content_height = min(screen_height, max_height+10)
+        
+        
+            # Scrollable content
         self.main_box = MDScrollView(
-            pos_hint={'right':1,'left':1},
+            size_hint=(None, None),
+            size=(content_width,content_height),
             do_scroll_x=False,
-            )
+            do_scroll_y=False,
+            radius=[dp(20)],
+            pos_hint={'center_x': 0.5, 'center_y': 0.5}, # Centra
+        )
+        
+        # Card for shadow effect
+        self.card = MDCard(
+                style="elevated",
+                size_hint=(None, None),
+                size=(content_width, content_height),
+                radius=[dp(20)],
+                pos_hint={'center_x': 0.5, 'center_y': 0.5}, # Centra
+                theme_shadow_color="Custom",
+                shadow_color="green",
+                theme_bg_color="Custom",
+                md_bg_color="white",
+                md_bg_color_disabled="grey",
+                theme_shadow_offset="Custom",
+                shadow_offset=(1, -2),
+                theme_shadow_softness="Custom",
+                shadow_softness=1,
+                theme_elevation_level="Custom",
+                elevation_level=3,
+        )
 
         # Layout principal
-        self.layout = MDBoxLayout(
+        self.layout = self.ui_manager.create_box_layout(
             orientation="vertical",
-            spacing=dp(10),
             padding=dp(15),
-            adaptive_height=True,
-            size_hint=(1,1),
-            )
+            spacing=dp(10),
+            size_hint_y=None,  # Permite que el layout se expanda verticalmente
+            adaptive_height=True, # El alto del layout se ajusta a su contenido
+            width=content_width, # El ancho es el del scrollview
+            radius=dp(20),
+            
+            
+    )
         
-        self.logo_continer = MDBoxLayout(
-            #radius=dp(40),
+        self.logo_continer = self.ui_manager.create_box_layout(
+            radius=dp(40),
             pos_hint={"center_x": .5, "center_y": .5},
-            # md_bg_color=self.theme_cls.onSurfaceVariantColor,
             size_hint=(None, None),
             adaptive_height=True,
             adaptive_width=True,
@@ -94,20 +135,19 @@ class MainView(MDScreen):
             source="assets/images/WSion.png",
             size_hint=(None,None),
             size=(dp(150),dp(150)),
-            fit_mode='contain'
+            fit_mode='contain',
+            radius=dp(40),
         )
         
-        self.lang_btn_box=MDBoxLayout(
+        self.lang_btn_box=self.ui_manager.create_box_layout(
             orientation="vertical",
-            # md_bg_color=self.theme_cls.onSurfaceVariantColor,
             pos_hint={'left':1},
             adaptive_height=True,
             adaptive_width=True,
             size_hint_y=None,
-            size_hint_x=.8
+            size_hint_x=.6
         )     
     
-
         # Language selector (ahora como dropdown)
     
         self.language_button = self.ui_manager.create_button(
@@ -115,6 +155,8 @@ class MainView(MDScreen):
             icon="translate",
             style="outlined",
             callback=self.show_language_menu,
+            size_hint_max_x=.6,
+            size_hint=(None,None),
         )
         
         self.logo_continer.add_widget(logo)
@@ -128,37 +170,31 @@ class MainView(MDScreen):
         # Action buttons
         self.setup_action_buttons()
         
-        # Link display
-        self.link_button = self.ui_manager.create_hyperlink_button(
-            text=self.language_manager.get_text('generated_link'),
-            on_press=self.on_link_press,
-            md_bg_color = self.theme_cls.surfaceColor
-        )
-        self.layout.add_widget(self.link_button)
-        
         self.main_box.add_widget(self.layout)
-        self.add_widget(self.main_box)
+        self.card.add_widget(self.main_box)
+        self.add_widget(self.card)
+        
+        
         
     def setup_phone_input(self):
                 
         # Country selection
-        country_box = MDBoxLayout(
+        country_box = self.ui_manager.create_box_layout(
             orientation="horizontal",
             pos_hint={'left':1},
             adaptive_height=True,
             size_hint_y=None,
-            size_hint_x=1,
+            size_hint_x=.5,
             spacing=dp(10),
             )
         
         self.country_filter = self.ui_manager.create_text_input(
             hint_text=self.language_manager.get_text('search_country'),
             pos_hint={'left':1},
-            # width= "200dp",
             size_hint_x=0.5,
         )
         
-        flag_box=MDBoxLayout(
+        flag_box=self.ui_manager.create_box_layout(
             orientation="horizontal",
             adaptive_width=True,
             size_hint_x=dp(0.13),
@@ -192,7 +228,7 @@ class MainView(MDScreen):
         self.phone_input = self.ui_manager.create_text_input(
             hint_text=self.language_manager.get_text('enter_phone'),
             icon="phone",
-            size_hint_x=0.8,
+            size_hint_x=0.9,
         )
         self.layout.add_widget(self.phone_input)
         
@@ -203,7 +239,7 @@ class MainView(MDScreen):
             icon="email",
             # size_hint_x=(dp(100),None),
             max_height= "200dp",
-            size_hint_x=0.8,
+            size_hint_x=0.9,
         )
         self.layout.add_widget(self.message_input)
     
@@ -212,9 +248,11 @@ class MainView(MDScreen):
             
     def setup_action_buttons(self):
         
-        button_valid = MDBoxLayout(
+        button_box = self.ui_manager.create_box_layout(
             orientation="vertical",
-            adaptive_height=True
+            adaptive_height=True,
+            spacing=dp(10),
+            pos_hint={'center_x':.5,'center_y':.5},
         )
         
         btn_valid=self.ui_manager.create_button(
@@ -224,16 +262,13 @@ class MainView(MDScreen):
             "check",
             pos_hint={'center_x':.5},
             )
-        button_valid.add_widget(btn_valid)
-        self.layout.add_widget(button_valid)
         
-        button_column = MDBoxLayout(
+        button_column = self.ui_manager.create_box_layout(
             orientation="horizontal",
-            height=dp(50),
-            size_hint=(None,None),
-            #pos_hint={'center_x': 0.5},
-            spacing=dp(10),
-            
+            spacing=dp(5),
+            size_hint=(1,None),
+            height=dp(48), # set the height of the boxlayout
+            center=(.5,5)
         )
         
         buttons = [
@@ -251,15 +286,21 @@ class MainView(MDScreen):
                 callback=callback,
                 style=style,
                 icon=icon,
+                size_hint_x=None,  # Don't restrict button width, the boxlayout will manage it
             )
-        button_column.add_widget(btn)
+            button_column.add_widget(btn)
         
-        button_container = MDAnchorLayout(
-            anchor_x="center",
+        # Link display
+        self.link_button = self.ui_manager.create_hyperlink_button(
+            text=self.language_manager.get_text('generated_link'),
+            on_press=self.on_link_press,
+            md_bg_color = self.theme_cls.surfaceColor,
         )
-
-        button_container.add_widget(button_column)
-        self.layout.add_widget(button_container)
+            
+        self.layout.add_widget(button_box)
+        button_box.add_widget(btn_valid)
+        button_box.add_widget(button_column)
+        button_box.add_widget(self.link_button)
     
     def show_language_menu(self, instance):
         languages = [
@@ -329,15 +370,21 @@ class MainView(MDScreen):
         if success:
             # Check if result is a tuple (link, message) for country detection
             if isinstance(result, tuple):
+                print(f"Country detected: {result}")
                 link, message = result
                 self.show_country_detected_dialog(message, link)
             else:
                 # Successfully generated link directly
                 self.generated_link_text = result
-                self.link_button.text = f"{result}" # Update button text with underline
+                link_button_text =[
+                    child 
+                    for child in self.link_button.walk()
+                    if isinstance(child, MDButtonText)                   
+                ]
+                link_button_text[0].text = f"{result}" # Update button text with underline
                 # Use theme color for success (usually primary or accent)
                 self.link_button.theme_text_color = "Primary"
-                self.history_manager.add_link(result)
+                self.history_manager.add_link(result[1])
                 # AnimationManager.highlight_input(self.phone_input, success=True) # Adapt/replace
         else:
             # Failed validation or generation
@@ -611,16 +658,13 @@ class MainView(MDScreen):
     def on_theme_toggle(self, instance):
         """Toggle between light and dark themes"""
         self.theme_cls.theme_style = "Dark" if self.theme_cls.theme_style == "Light" else "Light"
-        self.layout.md_bg_color=self.theme_cls.backgroundColor
-        # Update button text immediately (or refactor update_texts to handle this)
-        #self.update_texts() # Call update_texts to refresh button labels
-        #AnimationManager.button_press(instance) # Adapt/replace
+        self.card.md_bg_color=self.theme_cls.backgroundColor if self.theme_cls.theme_style == "Dark" else "white"
 
     def on_history(self, instance):
         """Show history dialog"""
         # Needs replacement for HistoryPopup using KivyMD components
         try:
-            history_list = self.history_manager.get_history() # Assume returns list of strings (links)
+            history_list = self.history_manager.load_history() # Assume returns list of strings (links)
             if not history_list:
                 MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('history_empty'))).open()
                 return
@@ -639,21 +683,21 @@ class MainView(MDScreen):
                 if dialog:
                     dialog.dismiss()
 
-            for link in reversed(history_list): # Show newest first
-                items.append(
-                    MDListItem(
-                        MDListItemHeadlineText(Text=link),
-                        on_release=lambda x, l=link: history_item_selected(l),
+                for link in reversed(history_list): # Show newest first
+                    items.append(
+                        MDListItem(
+                            MDListItemHeadlineText(Text=link),
+                            on_release=lambda x, l=link: history_item_selected(l),
+                        )
                     )
-                )
 
-            dialog = MDDialog(MDDialogHeadlineText(
-                text=self.language_manager.get_text('history_title')),
-                type="simple",
-                items=items,
-                size_hint=(0.9, 0.8) # Adjust size
-            )
-            dialog.open()
+                dialog = MDDialog(MDDialogHeadlineText(
+                    text=self.language_manager.get_text('history_title')),
+                    type="simple",
+                    items=items,
+                    size_hint=(0.9, 0.8) # Adjust size
+                )
+                dialog.open()
 
         except Exception as e:
             logging.error("MainViewMD: Error getting or displaying history: ",e)
