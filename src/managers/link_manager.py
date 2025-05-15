@@ -4,6 +4,7 @@ from kivy.core.clipboard import Clipboard
 from kivy.core.window import Window
 from kivy.logger import Logger
 from ..core.phone_utils import validate_number, clean_number, get_error_message, is_valid_phone_format
+from src.managers.history_manager import HistoryManager as HM
 
 class LinkManager(EventDispatcher):
     current_link = StringProperty('')
@@ -21,7 +22,7 @@ class LinkManager(EventDispatcher):
         """Check clipboard content when app becomes active"""
         try:
             content = Clipboard.paste()
-            if content and content != self.last_clipboard:
+            if content and content != self.last_clipboard and len(content) > 8:
                 self.last_clipboard = content
                 self.is_valid_clipboard = is_valid_phone_format(content)
                 Logger.debug('LinkManager: Clipboard checked on app restore/resume')
@@ -45,7 +46,6 @@ class LinkManager(EventDispatcher):
                 self.current_link = f"https://wa.me/{validated_number}?text={custom_message.replace(' ', '%20')}"
             else:
                 self.current_link = f"https://wa.me/{validated_number}"
-                
             # Si hay un mensaje sobre código de país detectado, retornarlo con el link
             if message and 'detected_country' in message:
                 return True, (self.current_link, message)

@@ -6,6 +6,7 @@ import requests
 import geocoder
 from functools import lru_cache
 from phonenumbers.phonenumberutil import region_code_for_country_code
+from kivy.core.clipboard import Clipboard
 
 ERROR_MESSAGES = {
     'English': {
@@ -212,3 +213,17 @@ def validate_number_advanced(phone_number, country_code):
         return data.get("is_valid", False), data.get("message", "Invalid number")
     else:
         return False, "Validation service unavailable"
+
+def paste_from_clipboard(self, instance):
+        clipboard_content = Clipboard.paste()
+        
+        # Filtrar para permitir solo dígitos y '+' al inicio
+        filtered_content = re.sub(r'[^\d+]', '', clipboard_content)
+
+        # Validar longitud mínima del número
+        if len(filtered_content) < 8:  # Por ejemplo, un número debe tener al menos 8 dígitos
+            self.phone_input.text = ''  # No asignar si no cumple con la longitud mínima
+            return
+        
+        # Si el contenido filtrado está vacío, no lo asigna
+        self.phone_input.text = filtered_content if filtered_content else ''    

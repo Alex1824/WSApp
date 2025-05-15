@@ -1,5 +1,5 @@
 import unittest
-from src.core.link_manager import LinkManager
+from managers.link_manager import LinkManager
 from src.managers.language_manager import LanguageManager
 from src.managers.history_manager import HistoryManager
 import tempfile
@@ -30,7 +30,7 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(self.link_manager.current_link, expected_link)
         
         # Add to history
-        self.history_manager.add_link(self.link_manager.current_link)
+        self.history_manager.ad_link(self.link_manager.current_link)
         
         # Verify link is in history
         self.assertIn(expected_link, self.history_manager.history)

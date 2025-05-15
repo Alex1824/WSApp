@@ -1,8 +1,7 @@
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.fitimage import FitImage
 from kivymd.uix.scrollview import MDScrollView
-from kivymd.uix.button import MDButton, MDButtonText
-from kivymd.uix.textfield import MDTextField 
+from kivymd.uix.button import MDButton, MDButtonText ,MDFabButton
 from kivymd.uix.textfield.textfield import MDTextFieldHintText
 from kivy.metrics import dp
 from kivymd.uix.dialog import (
@@ -24,7 +23,6 @@ from kivymd.uix.list import (MDListItem,MDListItemLeadingIcon,MDListItemSupporti
 from kivymd.uix.divider import MDDivider
 from kivy.uix.widget import Widget
 import logging
-from kivymd.uix.anchorlayout import MDAnchorLayout
 from src.core.phone_utils import (
     get_country_code_by_location,
     get_country_flag,
@@ -32,7 +30,7 @@ from src.core.phone_utils import (
 from kivy.core.text import LabelBase
 from kivy.core.window import Window
 from kivymd.uix.card import MDCard
-from kivymd.uix.relativelayout import MDRelativeLayout
+from kivy.clock import mainthread
 
 class MainView(MDScreen):
     def __init__(self, managers, **kwargs):
@@ -60,12 +58,77 @@ class MainView(MDScreen):
                 "font-name": "assets/fonts/BabelStoneFlags.ttf",
             }}
         
-        # Bind to clipboard changes
-        self.link_manager.bind(is_valid_clipboard=self.on_valid_clipboard)
-        
         self.setup_ui()
         
         self.generated_link_text = ""
+    
+    def _show_clipboard_dialog(self, is_valid):
+        """Muestra el diálogo de uso del portapapeles."""
+        if is_valid:
+            Logger.debug("MainView: Número de teléfono válido detectado en el portapapeles.")
+            self.dialog = MDDialog(
+                title=self.language_manager.get_text('use_clipboard_title'),
+                text=self.language_manager.get_text('use_clipboard_text'),
+                buttons=[
+                    MDButton(  # Usar MDButton con style="flat"
+                        text=self.language_manager.get_text('cancel'),
+                        on_release=self.dismiss_dialog,
+                        style="flat"
+                    ),
+                    MDButton(
+                        text=self.language_manager.get_text('use'),
+                        on_release=self.use_clipboard_number,
+                        style="elevated",
+                    ),
+                ],
+            )
+            self.dialog.open()
+        else:
+            Logger.debug("MainView: Número de teléfono no válido en el portapapeles.")
+            self.dismiss_dialog() # Cerrar el diálogo si ya no es válido
+        
+    @mainthread  # Decora on_valid_clipboard para ejecutarlo en el hilo principal
+    def on_valid_clipboard(self, instance, is_valid):
+        """
+        Displays a dialog if a valid phone number is found in the clipboard.
+        This function is called when the is_valid_clipboard property of LinkManager changes.
+
+        Args:
+            instance: The LinkManager instance.
+            is_valid: A boolean indicating whether the clipboard contains a valid phone number.
+        """
+        if is_valid:
+            Logger.debug("MainView: Valid phone number detected in clipboard.")  # Registro
+            if not self.dialog:  # Verifica si el diálogo ya existe
+                self.dialog = MDDialog(
+                    title=self.language_manager.get_text('use_clipboard_title'),
+                    text=self.language_manager.get_text('use_clipboard_text'),
+                    buttons=[
+                        MDFabButton(
+                            text=self.language_manager.get_text('cancel'),
+                            on_release=self.dismiss_dialog,
+                        ),
+                        MDButton(  # Usar MDButton con style="elevated"
+                            text=self.language_manager.get_text('use'),
+                            on_release=self.use_clipboard_number,
+                            style="elevated",  # Establecer el estilo a "elevated"
+                        ),
+                    ],
+                )
+            self.dialog.open()
+        else:
+            Logger.debug("MainView: Invalid phone number in clipboard.")  # Registro
+            if self.dialog:  # Añadido para cerrar el diálogo si ya no es válido
+                self.dialog.dismiss()
+                self.dialog = None
+
+
+    def dismiss_dialog(self, *args):
+        """Closes the dialog and resets it."""
+        if self.dialog:
+            self.dialog.dismiss()
+            self.dialog = None  # Importante: Elimina la referencia al diálogo        
+        
         
     def setup_ui(self):
         
@@ -237,7 +300,6 @@ class MainView(MDScreen):
             hint_text=self.language_manager.get_text('custom_message'),
             multiline=True,
             icon="email",
-            # size_hint_x=(dp(100),None),
             max_height= "200dp",
             size_hint_x=0.9,
         )
@@ -323,43 +385,57 @@ class MainView(MDScreen):
         self.update_texts()
     
         
-    def on_valid_clipboard(self, instance, value):
-        """Handle when valid phone number is detected in clipboard"""
-        if value and self.link_manager.last_clipboard:
-            dialog = MDDialog(
-                title=self.language_manager.get_text('clipboard_title'),
-                text=self.language_manager.get_text('phone_detected'),
-                buttons=[
-                    MDButton(
-                        text=self.language_manager.get_text('yes'),
-                        on_release=lambda _: self.use_clipboard_number()
-                    ),
-                    MDButton(
-                        text=self.language_manager.get_text('no'),
-                        on_release=lambda _: dialog.dismiss()
-                    ),
-                ],
-            )
-            dialog.open()
+    # def on_valid_clipboard(self, instance, value):
+    #     """Handle when valid phone number is detected in clipboard"""
+    #     print("Valid phone number detected in clipboard", self.link_manager.last_clipboard)
+    #     if value:
+    #         print("Valid phone number detected in clipboard")  # Registro
+    #         if not self.dialog:
+    #             Logger.debug("MainView: Valid phone number detected in clipboard.")
+    #             self.dialog = MDDialog(
+    #                 title=self.language_manager.get_text('clipboard_title'),
+    #                 text=self.language_manager.get_text('phone_detected'),
+    #                 buttons=[
+    #                     MDButton(
+    #                         text=self.language_manager.get_text('yes'),
+    #                         on_release=lambda _:  self.use_clipboard_number()
+    #                     ),
+    #                     MDButton(
+    #                         text=self.language_manager.get_text('no'),
+    #                         on_release=lambda _: self.dialog.dismiss()
+    #                     ),
+    #                 ],
+    #             )
+    #             self.dialog.open()
+    #         else:
+    #             Logger.debug("MainView: Invalid phone number in clipboard.")  # Registro
+    #             if self.dialog:  # Añadido para cerrar el diálogo si ya no es válido
+    #                 self.dialog.dismiss()
+    #                 self.dialog = None
         
-    def use_clipboard_number(self):
-        self.phone_input.text = self.link_manager.last_clipboard
-        if hasattr(self, 'clipboard_dialog'):
-            self.clipboard_dialog.dismiss()
+    # def use_clipboard_number(self):
+    #     self.phone_input.text = self.link_manager.last_clipboard
+    #     if hasattr(self, 'clipboard_dialog'):
+    #         self.clipboard_dialog.dismiss()
 
     def on_validate(self, instance):
         """Validate and generate WhatsApp link"""
+        
+        text_hint=[
+                child 
+                    for child in self.phone_input.walk()
+                    if isinstance(child, MDTextFieldHintText)
+            ]
 
         if not self.phone_input.text and not self.phone_input.text.isdecimal():
+            text_hint[0].text = self.language_manager.get_text('error_phone_required')
             self.phone_input.error = True
-            self.phone_input.helper_text = self.language_manager.get_text('error_phone_required')
-            # AnimationManager.highlight_input(self.phone_input, success=False) # Adapt/replace
             return
 
         # Clear previous error if any
         
         self.phone_input.error = False
-        self.phone_input.helper_text = self.language_manager.get_text('phone_number_hint')
+        text_hint[0].text = self.language_manager.get_text('phone_number_hint')
 
         success, result = self.link_manager.generate_link(
             self.phone_input.text,
@@ -370,9 +446,10 @@ class MainView(MDScreen):
         if success:
             # Check if result is a tuple (link, message) for country detection
             if isinstance(result, tuple):
-                print(f"Country detected: {result}")
                 link, message = result
+                self.generated_link_text = link
                 self.show_country_detected_dialog(message, link)
+                
             else:
                 # Successfully generated link directly
                 self.generated_link_text = result
@@ -384,7 +461,7 @@ class MainView(MDScreen):
                 link_button_text[0].text = f"{result}" # Update button text with underline
                 # Use theme color for success (usually primary or accent)
                 self.link_button.theme_text_color = "Primary"
-                self.history_manager.add_link(result[1])
+                self.history_manager.add_link(result)
                 # AnimationManager.highlight_input(self.phone_input, success=True) # Adapt/replace
         else:
             # Failed validation or generation
@@ -596,7 +673,7 @@ class MainView(MDScreen):
             # Already premium - show a MDSnackbar message
             MDSnackbar(
                 MDSnackbarText(
-                    text=self.language_manager.get_text('premium_already_active'),
+                    text=self.language_manager.get_text('premium_active'),
                     ),
                 y=dp(24),
                 pos_hint={"center_x": 0.5},
@@ -662,17 +739,16 @@ class MainView(MDScreen):
 
     def on_history(self, instance):
         """Show history dialog"""
-        # Needs replacement for HistoryPopup using KivyMD components
+        from kivy.properties import ObjectProperty
         try:
-            history_list = self.history_manager.load_history() # Assume returns list of strings (links)
+            history_list = self.history_manager.get_history() # Assume returns list of strings (links)   
+            
             if not history_list:
                 MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('history_empty'))).open()
                 return
-
-            items = []
-            dialog = None
-
+            
             def history_item_selected(link):
+                
                 self.phone_input.text = '' # Clear inputs
                 self.message_input.text = ''
                 self.country_filter.text = ''
@@ -683,21 +759,26 @@ class MainView(MDScreen):
                 if dialog:
                     dialog.dismiss()
 
-                for link in reversed(history_list): # Show newest first
-                    items.append(
-                        MDListItem(
-                            MDListItemHeadlineText(Text=link),
-                            on_release=lambda x, l=link: history_item_selected(l),
-                        )
-                    )
+        
+            items=  MDDialogContentContainer(
+                {MDDivider(),
+                MDListItem(
+                    MDListItemSupportingText(
+                        text=str(link[0])
+                        ),
+                    on_release=lambda x, l=link[0]: history_item_selected(l),
+                ),
+                MDDivider(),
+                }for link in reversed(history_list) 
+            )
 
-                dialog = MDDialog(MDDialogHeadlineText(
-                    text=self.language_manager.get_text('history_title')),
-                    type="simple",
-                    items=items,
-                    size_hint=(0.9, 0.8) # Adjust size
-                )
-                dialog.open()
+            dialog = MDDialog()
+            dialog.title = self.language_manager.get_text('history_title')
+            dialog.type = "simple" # En KivyMD 2.0, el tipo "simple" ya no es un parámetro del constructor, se define directamente.
+            dialog.container = items
+            print(dialog.container.children)
+            dialog.size_hint = (0.9, 0.8)
+            dialog.open()
 
         except Exception as e:
             logging.error("MainViewMD: Error getting or displaying history: ",e)

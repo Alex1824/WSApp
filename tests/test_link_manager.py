@@ -1,5 +1,5 @@
 import unittest
-from src.core.link_manager import LinkManager
+from managers.link_manager import LinkManager
 
 class TestLinkManager(unittest.TestCase):
     def setUp(self):

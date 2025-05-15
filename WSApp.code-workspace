@@ -1,0 +1,22 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "D:/Users/simon/Documents/Py/WSApp/docs"
+		},
+		{
+			"path": "D:/Users/simon/Documents/Py/WSApp/src"
+		},
+		{
+			"path": "D:/Users/simon/Documents/Py/WSApp/tests"
+		},
+		{
+			"path": "D:/Users/simon/Documents/Py/WSApp/assets"
+		}
+	],
+	"settings": {
+		"CodeGPT.apiKey": "CodeGPT Plus Beta"
+	}
+}
