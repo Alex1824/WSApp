@@ -37,7 +37,11 @@ class LanguageManager(EventDispatcher):
                 'buy_premium': 'Buy Premium',
                 'cancel': 'Cancel',
                 'premium_title': 'Upgrade to Premium',
-                'error_phone_required':'Error Phone Required'
+                'error_phone_required':'Error Phone Required',
+                'history_title': 'Historial',
+                'history_empty': 'No hay historial de mensajes',
+                
+
             },
             'Español': {
                 'search_country': 'Buscar país',

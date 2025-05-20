@@ -16,10 +16,14 @@ from src.ui.ui_manager import UIManager
 from logging import Logger
 from kivymd.uix.snackbar import MDSnackbar,MDSnackbarText
 from kivy.core.clipboard import Clipboard
-from kivymd.uix.list import MDListItem
 from kivymd.uix.label import MDLabel,MDIcon
 from kivymd.uix.card import MDCard
-from kivymd.uix.list import (MDListItem,MDListItemLeadingIcon,MDListItemSupportingText,MDListItemHeadlineText)
+from kivymd.uix.list import (
+    MDList,
+    MDListItem,
+    MDListItemLeadingIcon,
+    MDListItemSupportingText,
+    MDListItemSupportingText)
 from kivymd.uix.divider import MDDivider
 from kivy.uix.widget import Widget
 import logging
@@ -29,7 +33,6 @@ from src.core.phone_utils import (
     get_country_code_by_alpha2)
 from kivy.core.text import LabelBase
 from kivy.core.window import Window
-from kivymd.uix.card import MDCard
 from kivy.clock import mainthread
 
 class MainView(MDScreen):
@@ -709,7 +712,7 @@ class MainView(MDScreen):
                 self.premium_button.text = self.language_manager.get_text('premium_active')
                 # Optionally change icon or disable
                 # self.premium_button.icon = "check-decagram"
-                # self.premium_button.disabled = True
+                self.premium_button.disabled = True
             # Enable premium features in UI if they were disabled
             # e.g., make country detection logic run if it was previously skipped
             if self.country_filter and not self.country_filter.text:
@@ -739,51 +742,80 @@ class MainView(MDScreen):
 
     def on_history(self, instance):
         """Show history dialog"""
-        from kivy.properties import ObjectProperty
         try:
-            history_list = self.history_manager.get_history() # Assume returns list of strings (links)   
+            history_list = self.history_manager.get_history()
             
             if not history_list:
                 MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('history_empty'))).open()
                 return
-            
-            def history_item_selected(link):
-                
-                self.phone_input.text = '' # Clear inputs
+
+            def _history_item_selected(link):
+                self.phone_input.text = ''  # Clear inputs
                 self.message_input.text = ''
                 self.country_filter.text = ''
-                self.generated_link_text = link # Set selected link as current
-                self.link_button.text = f"{link}"
+                self.generated_link_text = link  # Set selected link as current
+                self.link_button.text = link
                 self.link_button.theme_text_color = "Primary"
                 MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('history_link_loaded'))).open()
-                if dialog:
-                    dialog.dismiss()
+                dialog.dismiss()
 
-        
-            items=  MDDialogContentContainer(
-                {MDDivider(),
-                MDListItem(
-                    MDListItemSupportingText(
-                        text=str(link[0])
+        # Crear la lista de items del historial
+            items = []
+            for link in reversed(history_list):
+                items.append(
+                    MDListItem(
+                        MDListItemLeadingIcon(
+                            icon="link"
                         ),
-                    on_release=lambda x, l=link[0]: history_item_selected(l),
-                ),
-                MDDivider(),
-                }for link in reversed(history_list) 
-            )
+                        MDListItemSupportingText(
+                            text=str(link)
+                        ),
+                        on_release=lambda x, l=link: _history_item_selected(l),
+                        radius=dp(10),
+                    )
+                )
 
-            dialog = MDDialog()
-            dialog.title = self.language_manager.get_text('history_title')
-            dialog.type = "simple" # En KivyMD 2.0, el tipo "simple" ya no es un parámetro del constructor, se define directamente.
-            dialog.container = items
-            print(dialog.container.children)
-            dialog.size_hint = (0.9, 0.8)
+            # Crear el BoxLayout para los items
+            items_layout = self.ui_manager.create_box_layout(
+                orientation="vertical",
+                spacing="8dp",
+                #padding=("12dp", "8dp", "12dp", "8dp"),
+            )
+            for item in items:
+                items_layout.add_widget(item)
+
+            # Crear el ScrollView
+            scroll_view = MDScrollView(
+                size_hint=(1, None),
+                height="400dp"  # Altura máxima del ScrollView
+            )
+            scroll_view.add_widget(items_layout)
+
+            # Crear el diálogo
+            dialog = MDDialog(
+                MDDialogIcon(
+                    icon="history"
+                ),
+                MDDialogHeadlineText(
+                    text=self.language_manager.get_text('history_title')
+                ),
+                MDDialogContentContainer(
+                    MDDivider(),
+                    scroll_view,
+                    MDDivider(),
+                    orientation="vertical",
+                    #padding=("24dp", "16dp", "24dp", "24dp"),
+                    spacing="16dp"
+                ),
+                size_hint=(.9, None),
+                height="500dp"  # Altura total del diálogo
+            )
+            
             dialog.open()
 
         except Exception as e:
-            logging.error("MainViewMD: Error getting or displaying history: ",e)
+            Logger.error(f"MainViewMD: Error getting or displaying history: {e}")
             MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('error_history_access'))).open()
-
 
     def on_link_press(self, instance):
         """Handle link button press - open in browser"""
@@ -880,4 +912,3 @@ class MainView(MDScreen):
         self.message_input.hint_text = self.language_manager.get_text('custom_message')
         self.link_button.text = self.language_manager.get_text('generated_link')
 
-    
