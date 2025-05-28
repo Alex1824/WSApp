@@ -49,11 +49,15 @@ db_config = {**DEFAULT_DB_CONFIG, **db_config}
 
 
 # Inicialización de managers
+# Initialize LanguageManager first
+language_manager_instance = LanguageManager()
+
+# Initialize other managers, passing language_manager to LinkManager
 managers = {
-    'theme': None,
+    'theme': None,  # Assuming ThemeManager is initialized elsewhere or not yet implemented
     'ad': AdManager(app_id="ca-app-pub-7788178322918855/5307920549"),
     'contact': ContactManager(),
-    'language': LanguageManager(),
-    'link': LinkManager(),
+    'language': language_manager_instance, # Use the instance created above
+    'link': LinkManager(language_manager=language_manager_instance), # Pass the instance here
     'history': HistoryManager(**db_config)
 }

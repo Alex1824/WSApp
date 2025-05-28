@@ -11,9 +11,9 @@ class LinkManager(EventDispatcher):
     is_valid_clipboard = BooleanProperty(False)
     last_clipboard = StringProperty('')
     
-    def __init__(self):
+    def __init__(self, language_manager): # Added language_manager
         super().__init__()
-        self.current_language = 'English'
+        self.language_manager = language_manager # Store language_manager
         # Bind to window focus events instead of using Clock
         Window.bind(on_restore=self.check_clipboard)
         Window.bind(on_resume=self.check_clipboard)
@@ -34,25 +34,51 @@ class LinkManager(EventDispatcher):
     def generate_link(self, phone_number, country_code='', custom_message=''):
         """Generate a WhatsApp link with validation"""
         if not phone_number:
-            return False, get_error_message('empty_input', self.current_language)
+            # validate_number will return 'empty_input' key, let it handle that
+            # and then translate the key here.
+            # This specific check can be removed if validate_number handles it robustly.
+            # For now, keeping it as per original logic flow but using new LM.
+            return False, self.language_manager.get_text('empty_input')
             
         # Validate and format the number
-        validated_number, message = validate_number(phone_number, country_code, self.current_language)
+        # validate_number now returns:
+        # (validated_number_string, None) on success
+        # (None, message_key_or_preformatted_message_string) on failure or with info
+        validated_number, result_message = validate_number(phone_number, country_code, self.language_manager)
         
         if validated_number:
             # Remove the '+' from the validated number as wa.me links don't use it
-            validated_number = validated_number.lstrip('+')
+            final_number_for_link = validated_number.lstrip('+')
             if custom_message:
-                self.current_link = f"https://wa.me/{validated_number}?text={custom_message.replace(' ', '%20')}"
+                self.current_link = f"https://wa.me/{final_number_for_link}?text={custom_message.replace(' ', '%20')}"
             else:
-                self.current_link = f"https://wa.me/{validated_number}"
-            # Si hay un mensaje sobre código de país detectado, retornarlo con el link
-            if message and 'detected_country' in message:
-                return True, (self.current_link, message)
-            return True, self.current_link
+                self.current_link = f"https://wa.me/{final_number_for_link}"
+
+            # If validate_number returned a message (e.g. "detected_country"),
+            # it's already formatted by phone_utils.
+            # This message is informational, not an error.
+            if result_message: 
+                return True, (self.current_link, result_message) # Pass the formatted message as is
+            return True, self.current_link # Success, no special message
         else:
+            # An error occurred, result_message is either a key or a pre-formatted string
             self.current_link = ''
-            return False, message
+            # Check if result_message is one of the keys that phone_utils might return directly
+            # (like 'empty_input', 'invalid_format')
+            # or if it's already formatted (like for 'parse_error', 'detected_country').
+            # For simplicity here, we assume LinkManager is responsible for final translation if it's a key.
+            # However, phone_utils was designed to return formatted messages for 'parse_error' and 'detected_country'.
+            # So, if result_message contains '{}' or specific country code, it's likely pre-formatted.
+            # Otherwise, it's a key.
+            
+            # The keys returned by validate_number are 'empty_input', 'invalid_format'.
+            # The pre-formatted messages are for 'parse_error' and 'detected_country'.
+            # Since validated_number is None here, 'detected_country' won't be the case.
+            # So, result_message is either 'empty_input', 'invalid_format', or a formatted 'parse_error'.
+            
+            if result_message in ['empty_input', 'invalid_format']:
+                 return False, self.language_manager.get_text(result_message)
+            return False, result_message # Return pre-formatted 'parse_error' or other direct messages
             
     def clean_phone_number(self, number):
         """Clean and validate phone number format"""
@@ -60,6 +86,4 @@ class LinkManager(EventDispatcher):
             return None
         return clean_number(number)
         
-    def set_language(self, language):
-        """Set the current language for error messages"""
-        self.current_language = language
+    # Removed set_language method

@@ -20,11 +20,15 @@ class HistoryManager:
         self.port = port
         self.conn = None
         self.cursor = None
-        self._connect()
-        self._create_table()
+        self._connect()  # Initial connection
+        if self.conn: # Only create table if connection was successful
+            self._create_table()
 
     def _connect(self):
         """Establece la conexión a la base de datos PostgreSQL."""
+        # Close existing connection if any before creating a new one
+        if self.conn and not self.conn.closed:
+            self._close()
         try:
             self.conn = psycopg2.connect(
                 dbname=self.dbname,
@@ -36,11 +40,24 @@ class HistoryManager:
             self.cursor = self.conn.cursor()
         except psycopg2.Error as e:
             print(f"Error al conectar a la base de datos PostgreSQL: {e}")
-            raise  # Re-lanzar la excepción para que se maneje en el nivel superior
+            self.conn = None # Ensure conn is None if connection failed
+            self.cursor = None
+            # No re-raise, allow manager to exist without connection initially
+            # raise  
+
+    def _ensure_connection(self):
+        """Asegura que la conexión a la base de datos esté activa."""
+        if not self.conn or self.conn.closed != 0: # For psycopg2, conn.closed is non-zero if closed
+            print("Conexión perdida o no establecida. Intentando reconectar...")
+            self._connect()
+        if not self.conn: # If _connect failed
+             raise psycopg2.Error("No se pudo establecer la conexión a la base de datos.")
+
 
     def _create_table(self):
         """Crea la tabla de historial si no existe."""
         try:
+            self._ensure_connection() # Ensure connection before creating table
             self.cursor.execute("""
                 CREATE TABLE IF NOT EXISTS history (
                     id SERIAL PRIMARY KEY,  -- Usamos SERIAL para el autoincremento en PostgreSQL
@@ -52,7 +69,8 @@ class HistoryManager:
             self.conn.commit()
         except psycopg2.Error as e:
             print(f"Error al crear la tabla en PostgreSQL: {e}")
-            raise
+            # No re-raise, if table creation fails, methods will handle it
+            # raise
 
     def add_link(self, link, notes=""):
         """
@@ -66,16 +84,17 @@ class HistoryManager:
             bool: True si el enlace se agregó con éxito, False en caso contrario.
         """
         try:
-            self._connect()
+            self._ensure_connection()
             self.cursor.execute("INSERT INTO history (link, notes) VALUES (%s, %s)", (link, notes))
             self.conn.commit()
             return True
         except psycopg2.Error as e:
             print(f"Error al agregar enlace al historial en PostgreSQL: {e}")
-            self.conn.rollback()  # Importante: Revertir la transacción en caso de error
+            if self.conn and not self.conn.closed: # Check if conn exists and is not closed before rollback
+                self.conn.rollback()
             return False
-        finally:
-            self._close()
+        # finally: # No longer closing connection here
+            # pass 
 
     def get_history(self):
         """
@@ -86,35 +105,39 @@ class HistoryManager:
                 Retorna una lista vacía en caso de error.
         """
         try:
-            self._connect()
+            self._ensure_connection()
             self.cursor.execute("SELECT link, notes, created_at FROM history ORDER BY created_at DESC")
             return self.cursor.fetchall()
         except psycopg2.Error as e:
             print(f"Error al obtener el historial de PostgreSQL: {e}")
             return []
-        finally:
-            self._close()
+        # finally: # No longer closing connection here
+            # pass
 
     def clear_history(self):
         """Elimina todo el historial."""
         try:
-            self._connect()
+            self._ensure_connection()
             self.cursor.execute("DELETE FROM history")
             self.conn.commit()
             return True
         except psycopg2.Error as e:
             print(f"Error al eliminar el historial en PostgreSQL: {e}")
-            self.conn.rollback()
+            if self.conn and not self.conn.closed: # Check if conn exists and is not closed before rollback
+                self.conn.rollback()
             return False
-        finally:
-            self._close()
+        # finally: # No longer closing connection here
+            # pass
 
     def _close(self):
         """Cierra la conexión a la base de datos."""
+        if self.cursor:
+            self.cursor.close()
+            self.cursor = None
         if self.conn:
             self.conn.close()
             self.conn = None
-            self.cursor = None
+
 
     def __del__(self):
         """Cierra la conexión a la base de datos al destruir el objeto."""

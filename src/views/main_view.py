@@ -34,6 +34,9 @@ from src.core.phone_utils import (
 from kivy.core.text import LabelBase
 from kivy.core.window import Window
 from kivy.clock import mainthread
+from kivy.utils import platform
+if platform == 'android':
+    from android.permissions import request_permissions, Permission, check_permission
 
 class MainView(MDScreen):
     def __init__(self, managers, **kwargs):
@@ -64,31 +67,15 @@ class MainView(MDScreen):
         self.setup_ui()
         
         self.generated_link_text = ""
-    
-    def _show_clipboard_dialog(self, is_valid):
-        """Muestra el diálogo de uso del portapapeles."""
-        if is_valid:
-            Logger.debug("MainView: Número de teléfono válido detectado en el portapapeles.")
-            self.dialog = MDDialog(
-                title=self.language_manager.get_text('use_clipboard_title'),
-                text=self.language_manager.get_text('use_clipboard_text'),
-                buttons=[
-                    MDButton(  # Usar MDButton con style="flat"
-                        text=self.language_manager.get_text('cancel'),
-                        on_release=self.dismiss_dialog,
-                        style="flat"
-                    ),
-                    MDButton(
-                        text=self.language_manager.get_text('use'),
-                        on_release=self.use_clipboard_number,
-                        style="elevated",
-                    ),
-                ],
-            )
-            self.dialog.open()
+
+    def use_clipboard_number(self, *args):
+        """Usa el número de teléfono del portapapeles y cierra el diálogo."""
+        if self.link_manager and self.link_manager.last_clipboard:
+            self.phone_input.text = self.link_manager.last_clipboard
+            Logger.info("MainView: Used phone number from clipboard: %s", self.link_manager.last_clipboard)
         else:
-            Logger.debug("MainView: Número de teléfono no válido en el portapapeles.")
-            self.dismiss_dialog() # Cerrar el diálogo si ya no es válido
+            Logger.warning("MainView: use_clipboard_number called but no clipboard data in link_manager.")
+        self.dismiss_dialog() # Asegúrate que self.dismiss_dialog() maneja self.dialog = None
         
     @mainthread  # Decora on_valid_clipboard para ejecutarlo en el hilo principal
     def on_valid_clipboard(self, instance, is_valid):
@@ -259,6 +246,9 @@ class MainView(MDScreen):
             pos_hint={'left':1},
             size_hint_x=0.5,
         )
+        # Set name for the hint text child
+        if self.country_filter.children and isinstance(self.country_filter.children[0], MDTextFieldHintText):
+            self.country_filter.children[0].name = 'search_country'
         
         flag_box=self.ui_manager.create_box_layout(
             orientation="horizontal",
@@ -296,6 +286,8 @@ class MainView(MDScreen):
             icon="phone",
             size_hint_x=0.9,
         )
+        if self.phone_input.children and isinstance(self.phone_input.children[0], MDTextFieldHintText):
+            self.phone_input.children[0].name = 'enter_phone'
         self.layout.add_widget(self.phone_input)
         
         # Custom message input
@@ -306,6 +298,8 @@ class MainView(MDScreen):
             max_height= "200dp",
             size_hint_x=0.9,
         )
+        if self.message_input.children and isinstance(self.message_input.children[0], MDTextFieldHintText):
+            self.message_input.children[0].name = 'custom_message'
         self.layout.add_widget(self.message_input)
     
     def update_flag(self, country_code):
@@ -327,6 +321,9 @@ class MainView(MDScreen):
             "check",
             pos_hint={'center_x':.5},
             )
+        # Set name for the button text child
+        if btn_valid.children and isinstance(btn_valid.children[0], MDButtonText):
+            btn_valid.children[0].name = 'validate_link'
         
         button_column = self.ui_manager.create_box_layout(
             orientation="horizontal",
@@ -336,23 +333,40 @@ class MainView(MDScreen):
             center=(.5,5)
         )
         
-        buttons = [
-            (None,self.on_copy, "elevated", "content-copy"),
-            (None,self.on_share, "elevated", "share-variant"),
-            (None,self.on_select_contact, "tonal", "account-box"),
-            (None,self.on_history, "tonal", "history"),
-            (None,self.on_premium, "filled", "crown"),
-            (None,self.on_theme_toggle,"filled", "theme-light-dark",)
+        # Define tooltip keys corresponding to icons
+        tooltip_keys = {
+            "content-copy": "copy_link_tooltip",
+            "share-variant": "share_link_tooltip",
+            "account-box": "select_contact_tooltip",
+            "history": "view_history_tooltip",
+            "crown": "go_premium_tooltip",
+            "theme-light-dark": "toggle_theme_tooltip"
+        }
+
+        buttons_data = [
+            # text_key is None for icon buttons, callback, style, icon_name
+            (None, self.on_copy, "elevated", "content-copy"),
+            (None, self.on_share, "elevated", "share-variant"),
+            (None, self.on_select_contact, "tonal", "account-box"),
+            (None, self.on_history, "tonal", "history"),
+            (None, self.on_premium, "filled", "crown"),
+            (None, self.on_theme_toggle, "filled", "theme-light-dark")
         ]
         
-        for text_key, callback, style, icon in buttons:
+        for text_key, callback, style, icon_name in buttons_data:
+            # Assuming create_button creates an MDIconButton or similar when text is None
+            # and that it supports setting tooltip_text.
+            # The 'name' attribute will be used by a hypothetical update method for tooltips.
             btn = self.ui_manager.create_button(
-                text=self.language_manager.get_text(text_key),
+                text=self.language_manager.get_text(text_key) if text_key else "", # Ensure text is not None
                 callback=callback,
                 style=style,
-                icon=icon,
+                icon=icon_name, # Use icon_name consistently
                 size_hint_x=None,  # Don't restrict button width, the boxlayout will manage it
+                tooltip_text=self.language_manager.get_text(tooltip_keys.get(icon_name)) # Set initial tooltip
             )
+            # Set the name attribute for future tooltip updates
+            btn.name = tooltip_keys.get(icon_name) 
             button_column.add_widget(btn)
         
         # Link display
@@ -361,6 +375,8 @@ class MainView(MDScreen):
             on_press=self.on_link_press,
             md_bg_color = self.theme_cls.surfaceColor,
         )
+        if self.link_button.children and isinstance(self.link_button.children[0], MDButtonText):
+            self.link_button.children[0].name = 'generated_link'
             
         self.layout.add_widget(button_box)
         button_box.add_widget(btn_valid)
@@ -387,59 +403,21 @@ class MainView(MDScreen):
         self.language_button.children[0].text = language  # Actualiza texto del botón
         self.update_texts()
     
-        
-    # def on_valid_clipboard(self, instance, value):
-    #     """Handle when valid phone number is detected in clipboard"""
-    #     print("Valid phone number detected in clipboard", self.link_manager.last_clipboard)
-    #     if value:
-    #         print("Valid phone number detected in clipboard")  # Registro
-    #         if not self.dialog:
-    #             Logger.debug("MainView: Valid phone number detected in clipboard.")
-    #             self.dialog = MDDialog(
-    #                 title=self.language_manager.get_text('clipboard_title'),
-    #                 text=self.language_manager.get_text('phone_detected'),
-    #                 buttons=[
-    #                     MDButton(
-    #                         text=self.language_manager.get_text('yes'),
-    #                         on_release=lambda _:  self.use_clipboard_number()
-    #                     ),
-    #                     MDButton(
-    #                         text=self.language_manager.get_text('no'),
-    #                         on_release=lambda _: self.dialog.dismiss()
-    #                     ),
-    #                 ],
-    #             )
-    #             self.dialog.open()
-    #         else:
-    #             Logger.debug("MainView: Invalid phone number in clipboard.")  # Registro
-    #             if self.dialog:  # Añadido para cerrar el diálogo si ya no es válido
-    #                 self.dialog.dismiss()
-    #                 self.dialog = None
-        
-    # def use_clipboard_number(self):
-    #     self.phone_input.text = self.link_manager.last_clipboard
-    #     if hasattr(self, 'clipboard_dialog'):
-    #         self.clipboard_dialog.dismiss()
-
     def on_validate(self, instance):
         """Validate and generate WhatsApp link"""
         
-        text_hint=[
-                child 
-                    for child in self.phone_input.walk()
-                    if isinstance(child, MDTextFieldHintText)
-            ]
+        # Clear previous error if any
+        self.phone_input.error = False
+        self.phone_input.helper_text = "" 
 
-        if not self.phone_input.text and not self.phone_input.text.isdecimal():
-            text_hint[0].text = self.language_manager.get_text('error_phone_required')
+        # Initial validation for empty phone number
+        if not self.phone_input.text.strip(): # Verifica si está vacío o solo espacios
             self.phone_input.error = True
+            # Usa helper_text para el mensaje de error, no el hint_text.
+            self.phone_input.helper_text = self.language_manager.get_text('error_phone_required') 
             return
 
-        # Clear previous error if any
-        
-        self.phone_input.error = False
-        text_hint[0].text = self.language_manager.get_text('phone_number_hint')
-
+        # Proceed with link generation if initial validation passes
         success, result = self.link_manager.generate_link(
             self.phone_input.text,
             self.country_filter.text,
@@ -510,25 +488,53 @@ class MainView(MDScreen):
             MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('error_no_link_to_copy'))).open()
 
     def on_select_contact(self, instance):
-        """Show contact selection dialog"""
-        # Needs replacement for ContactsPopup using KivyMD components
-        # Example using a simple MDDialog with a list (requires contact_manager)
+        """Handles the contact selection button press, initiating permission check if needed."""
+        if platform == 'android':
+            if not check_permission(Permission.READ_CONTACTS):
+                Logger.info("MainView: Requesting READ_CONTACTS permission.")
+                request_permissions([Permission.READ_CONTACTS], self._on_contact_permission_result)
+                return 
+            else:
+                Logger.info("MainView: READ_CONTACTS permission already granted.")
+                self._show_contact_dialog() 
+        else:
+            # For non-Android platforms, proceed directly
+            Logger.info("MainView: %s", "Not on Android, proceeding to show contact dialog.")
+            self._show_contact_dialog()
+
+    def _on_contact_permission_result(self, permissions, grant_results):
+        """Callback for the Android permission request."""
+        if permissions and Permission.READ_CONTACTS in permissions: # Check if READ_CONTACTS was in the request
+            permission_index = permissions.index(Permission.READ_CONTACTS)
+            if grant_results and grant_results[permission_index]:
+                Logger.info("MainView: READ_CONTACTS permission granted by user.")
+                self._show_contact_dialog()
+            else:
+                Logger.warning("MainView: READ_CONTACTS permission denied by user.")
+                MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('error_contact_permission_denied'))).open()
+        else:
+            Logger.warning("MainView: READ_CONTACTS permission result callback received for an unexpected permission request.")
+
+
+    def _show_contact_dialog(self):
+        """Shows the contact selection dialog after permissions are confirmed."""
         try:
-            contacts = self.contact_manager.get_contacts() # [{'name': 'John', 'number': '123'}, ...]
+            contacts = self.contact_manager.get_contacts()
             if not contacts:
                 MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('error_no_contacts'))).open()
                 return
 
-            # Create list items for the dialog
-            # Using kivymd.uix.list.OneLineAvatarIconListItem would be better if icons/avatars are available
             items = []
-            dialog = None # Define dialog first
+            # This dialog instance needs to be accessible to the callback.
+            # We can pass it or make it an instance variable if absolutely necessary,
+            # but for this structure, defining it before the callback that needs it is key.
+            self.contact_dialog_instance = None # Ensure it's reset or managed if dialogs can overlap
 
             def contact_selected_callback(contact_number, contact_name):
                 self.phone_input.text = contact_number
                 MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('contact_selected') + f": {contact_name}")).open()
-                if dialog:
-                    dialog.dismiss()
+                if self.contact_dialog_instance: 
+                    self.contact_dialog_instance.dismiss()
                 # AnimationManager.highlight_input(self.phone_input) # Adapt/replace
 
             for contact in contacts:
@@ -538,19 +544,18 @@ class MainView(MDScreen):
                         on_release=lambda x, num=contact.get('number'), name=contact.get('name'): contact_selected_callback(num, name) if num else None
                     )
                 )
-
-            dialog = MDDialog(
+            
+            self.contact_dialog_instance = MDDialog(
                 title=self.language_manager.get_text('select_contact_title'),
-                type="simple", # Use "simple" type for list items
+                type="simple",
                 items=items,
-                size_hint=(0.9, 0.8) # Adjust size
+                size_hint=(0.9, 0.8)
             )
-            dialog.open()
+            self.contact_dialog_instance.open()
 
         except Exception as e:
-            Logger.error(f"MainViewMD: Error getting or displaying contacts: {e}")
+            Logger.error(f"MainViewMD: Error getting or displaying contacts in _show_contact_dialog: {e}")
             MDSnackbar(MDSnackbarText(text=self.language_manager.get_text('error_contact_access'))).open()
-
 
     def on_share(self, instance):
         """Share the generated link"""
@@ -829,73 +834,88 @@ class MainView(MDScreen):
 
 
     def _update_button_texts(self):
-        """Update texts for MDButtons, including those in nested layouts."""
-        buttons_to_update = []
-        for child in self.layout.walk():  # Use walk() to get all descendants
+        """Update texts for MDButtons using widget.name as the language key."""
+        Logger.debug("MainView: Starting _update_button_texts")
+        for child in self.layout.walk():
             if isinstance(child, MDButton):
-                for subchild in child.children:
-                    if isinstance(subchild, MDButtonText):
-                        buttons_to_update.append((subchild, subchild.text))
-
-        dict_data = self.language_manager.get_dict_lang()
-        for button_text, original_text in buttons_to_update:
-            if original_text in dict_data.values():
-                for key, translated_text in dict_data.items():
-                    if translated_text == original_text:
-                        button_text.text = self.language_manager.get_text(key)
-                        break  # Found the translation, move to the next button
+                for sub_child in child.children: # MDButtonText is often a child of MDButton
+                    if isinstance(sub_child, MDButtonText):
+                        if hasattr(sub_child, 'name') and sub_child.name:
+                            lang_key = sub_child.name
+                            translated_text = self.language_manager.get_text(lang_key)
+                            if translated_text != lang_key : # Only update if translation exists and is different
+                                if sub_child.text != translated_text:
+                                    sub_child.text = translated_text
+                                    Logger.debug(f"MainView: Updated MDButtonText '{lang_key}' to '{translated_text}'")
+                            # else:
+                                # Logger.debug(f"MainView: MDButtonText '{lang_key}' not translated or translation is same as key.")
+                        # else:
+                            # Logger.debug(f"MainView: MDButtonText widget {sub_child} has no 'name' property or it's empty.")
 
 
     def _update_text_input_hints(self):
-        """Update hint_texts for MDTextFields."""
+        """Update hint_texts for MDTextFields using hint_widget.name as the language key."""
         from kivy.clock import Clock
-        hint_text_widgets = [
-            child
-            for child in self.layout.walk()
-            if isinstance(child, MDTextFieldHintText)
-        ]
-        dict_data = self.language_manager.get_dict_lang()
-        text_fields_to_refresh = []  # To store text fields that need refresh
+        Logger.debug("MainView: Starting _update_text_input_hints")
+        text_fields_to_refresh = []
 
-        for hint_widget in hint_text_widgets:
-            if hint_widget.text in dict_data.values():
-                for key, translated_text in dict_data.items():
-                    if translated_text == hint_widget.text:
-                        print(
-                            f"Updating hint_text '{hint_widget.text}'"
-                            f" to '{self.language_manager.get_text(key)}'"
-                        )
-                        hint_widget.text = self.language_manager.get_text(key)
-                        # Find the parent MDTextField to refresh it
-                        text_field = hint_widget.parent
-                        if text_field and text_field not in text_fields_to_refresh:
-                            text_fields_to_refresh.append(text_field)
-                        break
+        for child in self.layout.walk():
+            if isinstance(child, MDTextFieldHintText): # This is the actual hint text widget
+                if hasattr(child, 'name') and child.name:
+                    lang_key = child.name
+                    translated_text = self.language_manager.get_text(lang_key)
+                    
+                    # Ensure parent MDTextField is captured for refresh
+                    text_field = child.parent 
+                    if text_field and text_field not in text_fields_to_refresh:
+                         text_fields_to_refresh.append(text_field)
 
+                    if translated_text != lang_key: # Only update if translation exists
+                        if child.text != translated_text:
+                            child.text = translated_text # Update the hint text itself
+                            Logger.debug(f"MainView: Updated MDTextFieldHintText '{lang_key}' to '{translated_text}'")
+                    # else:
+                        # Logger.debug(f"MainView: MDTextFieldHintText '{lang_key}' not translated or translation is same as key.")
+                # else:
+                    # Logger.debug(f"MainView: MDTextFieldHintText widget {child} has no 'name' property or it's empty.")
+        
         # Force refresh after updating all hints
         def refresh_text_fields(*args):
+            Logger.debug("MainView: Refreshing MDTextFields for hint text update.")
             for field in text_fields_to_refresh:
-                field.focus = True  # Give focus briefly
-                field.focus = False  # Remove focus
+                # A common way to force refresh is to briefly change a property that affects layout/drawing
+                original_helper_text = field.helper_text
+                field.helper_text = " " 
+                field.helper_text = original_helper_text
+                # Or try focus, though helper_text change might be more reliable for hints
+                # field.focus = True 
+                # field.focus = False
+            Logger.debug("MainView: Finished refreshing MDTextFields.")
 
-        if text_fields_to_refresh:  # Only schedule if there are fields to refresh
+        if text_fields_to_refresh:
+            Logger.debug(f"MainView: Scheduling refresh for {len(text_fields_to_refresh)} text fields.")
             Clock.schedule_once(refresh_text_fields, 0)
 
 
     def _update_labels(self):
-        """Update texts for MDLabels."""
-        labels_to_update = []
+        """Update texts for MDLabels using label.name as the language key."""
+        Logger.debug("MainView: Starting _update_labels")
         for child in self.layout.walk():
             if isinstance(child, MDLabel):
-                labels_to_update.append((child, child.text))
-
-        dict_data = self.language_manager.get_dict_lang()
-        for label, original_text in labels_to_update:
-            if original_text in dict_data.values():
-                for key, translated_text in dict_data.items():
-                    if translated_text == original_text:
-                        #label.text = self.language_manager.get_text(key)
-                        break
+                # Exclude MDIcon which is a subclass of MDLabel but should not have its text (icon name) translated
+                if isinstance(child, MDIcon):
+                    continue
+                if hasattr(child, 'name') and child.name:
+                    lang_key = child.name
+                    translated_text = self.language_manager.get_text(lang_key)
+                    if translated_text != lang_key : # Only update if translation exists and is different
+                        if child.text != translated_text:
+                            child.text = translated_text
+                            Logger.debug(f"MainView: Updated MDLabel '{lang_key}' to '{translated_text}'")
+                    # else:
+                        # Logger.debug(f"MainView: MDLabel '{lang_key}' not translated or translation is same as key.")
+                # else:
+                    # Logger.debug(f"MainView: MDLabel widget {child} has no 'name' property or it's empty.")
 
 
     def update_texts(self):
