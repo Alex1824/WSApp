@@ -8,34 +8,7 @@ from functools import lru_cache
 from phonenumbers.phonenumberutil import region_code_for_country_code
 from kivy.core.clipboard import Clipboard
 
-ERROR_MESSAGES = {
-    'English': {
-        'empty_input': 'Phone number is required.',
-        'invalid_format': 'Invalid phone number format',
-        'parse_error': 'Error parsing phone number: {}',
-        'detected_country': 'Detected country code: {}. Would you like to use it?'
-    },
-    'Español': {
-        'empty_input': 'El número de teléfono es requerido.',
-        'invalid_format': 'Formato de número telefónico inválido',
-        'parse_error': 'Error al analizar el número telefónico: {}',
-        'detected_country': 'Código de país detectado: {}. ¿Desea utilizarlo?'
-    },
-    'Français': {
-        'empty_input': 'Le numéro de téléphone est requis.',
-        'invalid_format': 'Format de numéro de téléphone invalide',
-        'parse_error': 'Erreur lors de l\'analyse du numéro: {}',
-        'detected_country': 'Code pays détecté: {}. Voulez-vous l\'utiliser?'
-    }
-}
-
-def get_error_message(key, lang='English', *args):
-    """Get a translated error message"""
-    messages = ERROR_MESSAGES.get(lang, ERROR_MESSAGES['English'])
-    message = messages.get(key, ERROR_MESSAGES['English'][key])
-    if args:
-        return message.format(*args)
-    return message
+# ERROR_MESSAGES dictionary and get_error_message function are removed.
 
 def detect_country_code_from_number(number):
     """Try to detect country code from the phone number itself"""
@@ -59,33 +32,49 @@ def is_valid_phone_format(number):
         cleaned = cleaned[1:]
     return cleaned.isdigit() and 8 <= len(cleaned) <= 15
 
-def validate_number(raw_number, country_code='', language='English'):
+def validate_number(raw_number, country_code='', language_manager=None):
     """Validate a phone number with improved detection"""
+    if language_manager is None:
+        # Fallback or error if language_manager is not provided
+        # For this task, we'll assume it's always provided.
+        # If not, one might raise ValueError("language_manager is required")
+        # or return a default English message key directly.
+        # For now, to avoid breaking execution if accidentally not passed:
+        print("Warning: language_manager not provided to validate_number. Using message keys directly.")
+        fallback_get_text = lambda key, *args: key if not args else key.format(*args)
+    else:
+        fallback_get_text = lambda key, *args: language_manager.get_text(key) if not args else language_manager.get_text(key).format(*args)
+
     try:
         if not raw_number:
-            return None, get_error_message('empty_input', language)
+            return None, 'empty_input' # Return key
             
         # First check if it's even a phone number format
         if not is_valid_phone_format(raw_number):
-            return None, get_error_message('invalid_format', language)
+            return None, 'invalid_format' # Return key
             
         # Try to clean and format the number
         cleaned_number = clean_number(raw_number, country_code)
         if not cleaned_number:
-            return None, get_error_message('invalid_format', language)
+            return None, 'invalid_format' # Return key
 
         # Parse and validate the number
         parsed_number = phonenumbers.parse(cleaned_number)
         if phonenumbers.is_valid_number(parsed_number):
             formatted = phonenumbers.format_number(parsed_number, phonenumbers.PhoneNumberFormat.E164)
-            detected_country = phonenumbers.region_code_for_number(parsed_number)
-            if not country_code:
-                return formatted, get_error_message('detected_country', language, detected_country)
-            return formatted, None
+            detected_country_alpha2 = phonenumbers.region_code_for_number(parsed_number)
+            # The 'detected_country' key expects the country code as a format argument.
+            # The message should be formatted here as it includes a parameter.
+            if not country_code: # If country_code was not initially provided by user
+                # This message is now pre-formatted by phone_utils
+                return formatted, fallback_get_text('detected_country', detected_country_alpha2)
+            return formatted, None # Success, no message
         else:
-            return None, get_error_message('invalid_format', language)
+            return None, 'invalid_format' # Return key
     except phonenumbers.NumberParseException as e:
-        return None, get_error_message('parse_error', language, str(e))
+        # This message is also pre-formatted by phone_utils
+        return None, fallback_get_text('parse_error', str(e))
+
 
 def clean_number(raw_number, country_code=''):
     """Clean and format a phone number with improved country code detection"""
@@ -213,17 +202,3 @@ def validate_number_advanced(phone_number, country_code):
         return data.get("is_valid", False), data.get("message", "Invalid number")
     else:
         return False, "Validation service unavailable"
-
-def paste_from_clipboard(self, instance):
-        clipboard_content = Clipboard.paste()
-        
-        # Filtrar para permitir solo dígitos y '+' al inicio
-        filtered_content = re.sub(r'[^\d+]', '', clipboard_content)
-
-        # Validar longitud mínima del número
-        if len(filtered_content) < 8:  # Por ejemplo, un número debe tener al menos 8 dígitos
-            self.phone_input.text = ''  # No asignar si no cumple con la longitud mínima
-            return
-        
-        # Si el contenido filtrado está vacío, no lo asigna
-        self.phone_input.text = filtered_content if filtered_content else ''    
